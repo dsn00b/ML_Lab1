@@ -25,10 +25,7 @@ ggplot(missclass) + geom_line(aes(k, value, colour = Legend)) + theme_bw() +
 ## Including Plots
 
 $$\mathbf{y}$$ $$y$$ $$\mathbb{I}$$
-$$\mathbf{y} | \mathbb{X}, \lambda \sim N(w_0 + \mathbf{w}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$
+$$\mathbf{y} | \mathbb{X}, w_0, \mathbf{w} \sim N(w_0 + \mathbf{w}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$
 $$\mathbf{w} \sim N(0, \sigma^2/\lambda \cdot \mathbb{I})$$
-```{r pressure, echo=FALSE}
 
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+$$\mathbf{y} \sim N(\boldsymbol{\beta}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$

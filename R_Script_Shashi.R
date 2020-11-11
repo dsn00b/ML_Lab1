@@ -126,9 +126,9 @@ parkinsons <- parkinsons[, -c(1, 2, 3, 4, 6)]
 
 # bayesian model
 
-## $$\mathbf{y} | \mathbb{X}, \lambda \sim N(w_0 + \mathbf{w}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$
-## $$\mathbf{w} \sim N(0, \sigma^2/\lambda \cdot \mathbb{I})$$
-
+## $$\mathbf{y} | \mathbb{X}, w_0, \mathbf{w} \sim N(w_0 + \mathbf{w}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$
+##  $$\mathbf{w} \sim N(0, \sigma^2/\lambda \cdot \mathbb{I})$$
+  
 # create train/test partitions
 all_indices <- 1:(nrow(parkinsons))
 set.seed(12345)
@@ -251,12 +251,28 @@ ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() +
   xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Model AIC") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 
-# By using function RidgeOpt, compute optimal w parameters for 𝜆𝜆=1,𝜆𝜆=100 and 𝜆𝜆=1000.
-# Use the estimated parameters to predict the motor_UPDRS values for training and test data and
-# report the training and test MSE values. Which penalty parameter is most appropriate among the selected ones?
-# Why is MSE a more appropriate measure here than other empirical risk functions?
+### Question 3
 
-# Use functions from step 3 to compute AIC (Akaike Information Criterion) scores for the Ridge models
-# with values 𝜆𝜆=1,𝜆𝜆=100 and 𝜆𝜆=1000 and their corresponding optimal parameters w and 𝜎𝜎 
-# computed in step 4. What is the optimal model according to AIC criterion? What is the theoretical 
-# advantage of this kind of model selection compared to the holdout model selection done in step 4?
+# read in data
+tecator <- read_csv("tecator.csv")
+
+# drop columns not to be used for prediction
+tecator <- tecator[, -1]
+
+# split into training/test
+all_indices <- 1:(nrow(tecator))
+set.seed(12345)
+train_indices <- sample(all_indices, ceiling(0.6*nrow(tecator)))
+test_indices <- all_indices[!(all_indices %in% train_indices)]
+train_data <- tecator[train_indices, ]
+test_data <- tecator[test_indices, ]
+
+## linear regression
+
+# model
+
+# $$\mathbf{y} \sim N(\boldsymbol{\beta}\mathbb{X}, \sigma^2\cdot \mathbb{I})$$
+
+linreg <- lm(Y~., )
+
+
