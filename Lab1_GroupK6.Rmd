@@ -1,5 +1,5 @@
 ---
-title: "Machine Learning - Lab 1"
+title: "Lab 1_Group K6"
 author: "Yiran Wang, Tore Andersson and Shashi Nagarajan Iyer"
 date: "11/11/2020"
 output: pdf_document
@@ -14,9 +14,164 @@ library(data.table)
 library(glmnet)
 ```
 
-## Question 1
+Statement of contribution: 
+
+For assignments 1, 2 and 3 we all complete them independently and discussed together. Report for assignment 1 is mainly distributed by Yiran, assignment 2 is mainly by Shashi, and assignment 3 is mainly by Tore.
+
+# 1. Assignment 1 - Handwritten digit recognition with K-NN
+
+### 1.1 Import data and divide it into training, validation and test sets
+
+The first task is to import digit data and divide it into three sets for training, testing and validation respectively with 50%, 25% and 25% of the data. The code is as below:
+
+```{r}
+digits <- read.csv("optdigits.csv", header = F)
+colnames(digits)[ncol(digits)] <- "number"
+digits$number <- as.factor(digits$number)
+n <- dim(digits)[1] 
+set.seed(12345)
+id <- sample(1:n, floor(n*0.5)) 
+train <- digits[id,]
+id1 <- setdiff(1:n, id) 
+set.seed(12345) 
+id2 <- sample(id1, floor(n*0.25)) 
+validation <- digits[id2,]
+id3 <- setdiff(id1,id2) 
+test <- digits[id3,]
+```
 
 
+### 1.2 Train KNN model and estimate the result
+
+This task consists of training a knn model with 30 nearest neighbors and estimate the result with confusion metrics and misclassification errors for both the training and test data. This should be done, using the kknn function, with the following code:
+
+```{r, warning=FALSE}
+knn_train <- kknn(number ~., train, train, k = 30, kernel = "rectangular")
+knn_test <- kknn(number ~., train, test, k = 30, kernel = "rectangular")
+pred_train<- fitted(knn_train)
+confusion_train <- table(train$number, pred_train)
+pred_test <- fitted(knn_test)
+confusion_test <- table(test$number, pred_test)
+```
+
+The confusion matrix for train data is:
+
+```{r, warning=FALSE}
+print(confusion_train)
+```
+
+The confusion matrix for test data is:
+
+```{r, warning=FALSE}
+print(confusion_test)
+```
+
+With these two matrix, we can simply have the accuracy rate based on correct numbers over total numbers for each digits:
+
+```{r, warning=FALSE}
+print(diag(confusion_train)/rowSums(confusion_train))
+print(diag(confusion_test)/rowSums(confusion_test))
+```
+
+For train data, the quality of predicting different digits is with a large range between 91% and 100%. The prediction for digit 0 is 100%, and following with 6, 2, 3 and 7 with 97% to 99% rate. While the lower ones are for digits 4, 9 and 1 with about 91% correct rate. This could indicate that even for train data itself, the model does not fit quite well.
+
+For test data, the accuracy rates for prediction on digits do not have a huge difference than for train data. Some of them are higher than the train data prediction rate such as for 1, 6, 7 and 9. The highest one is 100% for digit 6. And other ones are below the train ones with a lowest rate for digit 4 being 86%. As we can see here, the rates for digits comparing with them for train data do not have an obvious decreasing trending, which means the model generalizes well.
+
+We can also have the mis-classification rate calculated as below:
+
+```{r, warning=FALSE}
+missclass <- function(X,X1) { 
+  n = length(X)
+  return(1-sum(diag(table(X,X1)))/n)
+}
+mismatch_rate_train <- missclass(train$number, pred_train)
+mismatch_rate_test <- missclass(test$number, pred_test)
+cat("The mismatch rate for train data is:", mismatch_rate_train, 
+    "\nThe mismatch rate for test data is:", mismatch_rate_test)
+```
+
+For the overall mismatch rate 0.045 for train data and 0.053 for test data, we can see that the rates for both of them are not low enough and the difference between them is not high, this can mean that the model is a little under fitting.
+
+
+### 1.3 Identify and plot cases with low and high correct rates
+
+This task is to find cases that are hard to classify and easy to classify and plot them with heatmap plots. This can be done with code as follows:
+
+```{r}
+train_eight <- train[which(train$number==8),]
+train_eight$prob <- knn_train$prob[which(train$number==8), "8"]
+sortedResult <- sort(train_eight[, "prob"], index.return = T)
+#sortedResult$x[1:3] #0.1000000 0.1333333 0.1666667
+hard_ids <- sortedResult$ix[1:3] #50  43 136
+#tail(sortedResult$x, n=c(2)) #1 1
+easy_ids <- tail(sortedResult$ix, n=c(2)) #179 183
+plotHeatmap <- function(index){
+  heatmap(matrix(as.numeric(train_eight[index, 1:64]), 8, 8, byrow = T), Colv = NA, Rowv = NA)
+}
+# for (i in c(hard_ids, easy_ids)) {
+#   plotHeatmap(i)
+# }
+```
+![](Lab1_assignment1_3.jpeg) 
+
+The cases that are hard to see are chosen with lowest correct rates being 0.1000000, 0.1333333 and 0.1666667. While for the easy to identify ones, the rates are both 100%. As the heatmap shows, the cases that has lowest accuracy rates(the top three showing on the image) are hard to recognized as digits 8 when visualizing them as well. All of them are either too blur or the shape is not clear enough to identify as digit 8. While the 100% accurate cases(the bottom two on the image) are very easy to see as 8.
+
+
+### 1.4 Use different knn models to fit the train data and analyze with miss-classification rate
+
+This is about fitting the train data with K=1..30 knn models and plot the mis-classification rates for train and validation data. Then observe the plot in different perspective. The code shows as following:
+
+```{r, warning=FALSE}
+e_t <- 0
+e_v <- 0
+for (k in 1:30) {
+  kt <- kknn(number ~., train, train, k = k, kernel = "rectangular")
+  e_t[k] <- missclass(train$number, fitted(kt))
+  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
+  e_v[k] <- missclass(validation$number, fitted(kv))
+}
+plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate")
+lines(1:30, e_t, ylim = c(0,0.06), col = "blue")
+legend(2, 0.06, legend=c("validation", "train"),
+       col=c("red", "blue"), lty=1:1, cex=0.8)
+```
+
+As k increases, the complexity of the model for both data sets also increases overall. As we can see in the plot, the error rate for the validation data decreases first to 0.025 when K is 3 and then goes up quickly as K increases with a final slight drop till 0.05. While the error rate for the train data starts with 0 when k is 0, and then goes up gradually as K goes up.
+
+The optimal K is a little difficult to detect right away since the differences for different K values are very small, especially when K is about 3 to 7. But I would say maybe 3 is the optimal one based on only the rate we plot here. As at that point, the value for validation rate is the lowest and for train data is also relatively low.
+
+From the perspective of bias-variance trade-off, low bias is not always perfect as it can lead to a higher variance(when error of train data is 0, the error of validation data is not the lowest). When bias is a little bit higher, the variance can be a bit lower as it can generalize new data better. But after certain point, when bias gets too high, the error rate for both train and validation data will be high. In this case, it would be not a suitable model as it may be under-fitting.
+
+With the optimal K value selected based on above analysis, the model for test data can be shown with following code:
+
+```{r, warning=FALSE}
+k_test_optik <- kknn(number ~., train, test, k = 3, kernel = "rectangular")
+cat("Test mis-classification rate when k=3 is:", missclass(test$number, fitted(k_test_optik)))
+cat("Train mis-classification rate when k=3 is:", e_t[3])
+cat("Validation mis-classification rate when k=3 is:", e_v[3])
+```
+
+The test error being 2.40% with K=3 is about the same as the error rate of validation data and a little higher (about 1.25%) higher than train data. I would say the quality of the model with K=3 is acceptable because with a similar relatively high fitting rate to both validation and test data(not overfitting) and well fitted for train data(not underfitting).
+
+
+### 1.5 Use different knn models to fit the train data and analyze with empirical risk
+
+This task is also about fitting train data with different k values. But estimate the result with empirical risk, in this case, cross entropy value. This is done with the following code:
+
+```{r}
+r_v <- 0
+for (k in 1:30) {
+  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
+  s <- 0
+  for (i in 0:9) {
+    s <- s + sum(log2(kv$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv$prob))
+  }
+  r_v[k] <- -s/10
+}
+plot(1:30, r_v, ylim = c(0,0.14), type = "l", xlab = "K", ylab = "cross entropy")
+```
+
+The optimized K value is 6, because at that point, the risk value is the lowest with a value being 0.0172. The reason cross entropy is a better approach of estimating optimal model here is because it uses the probabilities of each class for every observation. While the mis-classification rate only count the final result class of each observation. Thus, cross-entropy can detect which model is better even though their mis-classification rates are the same.
 
 
 ## Question 2
@@ -430,9 +585,93 @@ ggplot(data.frame(y_test, y_generated)) +
 
 ## Appendix: Code
 
-### Question 2
-
 ``` {r, eval = FALSE}
+#Assignment 1
+#1.1
+digits <- read.csv("optdigits.csv", header = F)
+colnames(digits)[ncol(digits)] <- "number"
+digits$number <- as.factor(digits$number)
+n <- dim(digits)[1] 
+set.seed(12345)
+id <- sample(1:n, floor(n*0.5)) 
+train <- digits[id,]
+id1 <- setdiff(1:n, id) 
+set.seed(12345) 
+id2 <- sample(id1, floor(n*0.25)) 
+validation <- digits[id2,]
+id3 <- setdiff(id1,id2) 
+test <- digits[id3,]
+
+#1.2
+knn_train <- kknn(number ~., train, train, k = 30, kernel = "rectangular")
+knn_test <- kknn(number ~., train, test, k = 30, kernel = "rectangular")
+#Confusion matrix
+pred_train<- fitted(knn_train)
+confusion_train <- table(train$number, pred_train)
+pred_test <- fitted(knn_test)
+confusion_test <- table(test$number, pred_test)
+print(confusion_train)
+print(confusion_test)
+print(diag(confusion_train)/rowSums(confusion_train))
+print(diag(confusion_test)/rowSums(confusion_test))
+#Misclassification errors
+missclass <- function(X,X1) { 
+  n = length(X)
+  return(1-sum(diag(table(X,X1)))/n)
+}
+mismatch_rate_train <- missclass(train$number, pred_train) #0.04500262
+mismatch_rate_test <- missclass(test$number, pred_test) #0.05329154
+cat("The mismatch rate for train data is:", mismatch_rate_train, 
+    "\nThe mismatch rate for test data is:", mismatch_rate_test)
+
+#1.3
+train_eight <- train[which(train$number==8),]
+train_eight$prob <- knn_train$prob[which(train$number==8), "8"]
+sortedResult <- sort(train_eight[, "prob"], index.return = T)
+sortedResult$x[1:3] #0.1000000 0.1333333 0.1666667
+hard_ids <- sortedResult$ix[1:3] #50  43 136
+tail(sortedResult$x, n=c(2)) #1 1
+easy_ids <- tail(sortedResult$ix, n=c(2)) #179 183
+plotHeatmap <- function(index){
+  heatmap(matrix(as.numeric(train_eight[index, 1:64]), 8, 8, byrow = T), Colv = NA, Rowv = NA)
+}
+for (i in c(hard_ids, easy_ids)) {
+  plotHeatmap(i)
+}
+
+#1.4
+e_t <- 0
+e_v <- 0
+for (k in 1:30) {
+  kt <- kknn(number ~., train, train, k = k, kernel = "rectangular")
+  e_t[k] <- missclass(train$number, fitted(kt))
+  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
+  e_v[k] <- missclass(validation$number, fitted(kv))
+}
+plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate")
+lines(1:30, e_t, ylim = c(0,0.06), col = "blue")
+legend(2, 0.06, legend=c("validation", "train"),
+       col=c("red", "blue"), lty=1:1, cex=0.8)
+
+k_test_optik <- kknn(number ~., train, test, k = 3, kernel = "rectangular")
+cat("Test mis-classification rate when k=3 is:", missclass(test$number, fitted(k_test_optik)))
+cat("Train mis-classification rate when k=3 is:", e_t[3])
+cat("Validation mis-classification rate when k=3 is:", e_v[3])
+
+#1.5
+r_v <- 0
+for (k in 1:30) {
+  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
+  s <- 0
+  for (i in 0:9) {
+    s <- s + sum(log2(kv$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv$prob))
+  }
+  r_v[k] <- -s/10
+}
+plot(1:30, r_v, ylim = c(0,0.14), type = "l", xlab = "K", ylab = "cross entropy")
+
+
+### Question 2
 # read in data
 parkinsons <- read_csv("parkinsons.csv", col_types = cols())
 
@@ -582,11 +821,9 @@ ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() +
   xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Model AIC") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 
-```
 
 ### Question 3
 
-``` {r, eval = FALSE}
 # read in data
 tecator <- read_csv("tecator.csv", col_types = cols())
 
