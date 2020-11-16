@@ -28,13 +28,13 @@ test_data <- optdigits[test_indices, ]
 model_30_NN_train <- kknn(formula = X65~., kernel = "rectangular", train = train_data, test = train_data, k = 30)
 model_30_NN_test <- kknn(formula = X65~., kernel = "rectangular", train = train_data, test = test_data, k = 30)
 
-# contingency tables for train and test datasets
+# Confusion matrices for train and test datasets
 train_c_table <- table(train_data$X65, fitted(model_30_NN_train))
 test_c_table <- table(test_data$X65, fitted(model_30_NN_test))
 
-cat("Contingency table for Training Dataset is: \n")
+cat("Confusion matrix for Training Dataset is: \n")
 print(train_c_table)
-cat("Contingency table for Test Dataset is: \n")
+cat("Confusion matrix for Test Dataset is: \n")
 print(test_c_table)
 
 # misclassification errors for the training and test data
@@ -55,11 +55,11 @@ bott_2_prob_data <- unlist(train_data[class_8_indices[sorted_prob_indices[2]], 1
 bott_3_prob_data <- unlist(train_data[class_8_indices[sorted_prob_indices[3]], 1:64])
 
 # transform 1x64 into 8x8
-top_1_prob_data <- t(sapply(1:8, function(x) top_1_prob_data[((x-1)*8+1):(x*8)]))
-top_2_prob_data <- t(sapply(1:8, function(x) top_2_prob_data[((x-1)*8+1):(x*8)]))
-bott_1_prob_data <- t(sapply(1:8, function(x) bott_1_prob_data[((x-1)*8+1):(x*8)]))
-bott_2_prob_data <- t(sapply(1:8, function(x) bott_2_prob_data[((x-1)*8+1):(x*8)]))
-bott_3_prob_data <- t(sapply(1:8, function(x) bott_3_prob_data[((x-1)*8+1):(x*8)]))
+top_1_prob_data <- matrix(top_1_prob_data, 8, 8, TRUE)
+top_2_prob_data <- matrix(top_2_prob_data, 8, 8, TRUE)
+bott_1_prob_data <- matrix(bott_1_prob_data, 8, 8, TRUE)
+bott_2_prob_data <- matrix(bott_2_prob_data, 8, 8, TRUE)
+bott_3_prob_data <- matrix(bott_3_prob_data, 8, 8, TRUE)
 
 # visualise
 heatmap(top_1_prob_data, Colv=NA, Rowv=NA, col = c("white", "black"))
@@ -449,7 +449,7 @@ ggplot(data.frame(y_test, y_test_pred_opt_lambda)) +
 # estimate sigma: use MLE now ;-)
 y_train <- unlist(train_data[, "Fat"])
 y_train_pred <- predict(model_optimal_lambda, as.matrix(subset(train_data, select = -Fat)))
-MLE_sigma_estimate <- sum((y_train - y_train_pred)^2)/nrow(train_data)
+MLE_sigma_estimate <- sqrt(sum((y_train - y_train_pred)^2)/nrow(train_data))
 
 # generate labels from distribution N(y_train_pred, MLE_sigma_estimate*I)
 y_generated <- rnorm(length(y_test), y_test_pred_opt_lambda, MLE_sigma_estimate)

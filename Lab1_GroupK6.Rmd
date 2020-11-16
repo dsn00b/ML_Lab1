@@ -1,5 +1,5 @@
 ---
-title: "Lab 1_Group K6"
+title: "Machine Learning: Block 1 Lab 1 (Group K6)"
 author: "Yiran Wang, Tore Andersson and Shashi Nagarajan Iyer"
 date: "11/11/2020"
 output: pdf_document
@@ -14,11 +14,10 @@ library(data.table)
 library(glmnet)
 ```
 
-Statement of contribution: 
+## Statement of Contribution:
+All assignments were completed independently by each team member and approaches/results were discussed within the group. Reports for assignments 1, 2 and 3 were produced primarily by Yiran, Shashi and Tore respectively.
 
-For assignments 1, 2 and 3 we all complete them independently and discussed together. Report for assignment 1 is mainly distributed by Yiran, assignment 2 is mainly by Shashi, and assignment 3 is mainly by Tore.
-
-# 1. Assignment 1 - Handwritten digit recognition with K-NN
+## 1. Assignment 1 - Handwritten digit recognition with K-NN
 
 ### 1.1 Import data and divide it into training, validation and test sets
 
@@ -565,13 +564,13 @@ ggplot(data.frame(y_test, y_test_pred_opt_lambda)) +
 
 The LASSO regression model with optimised $\lambda = 10^-3$ produces good test predictions which are concentrated around the $y = x$ line in the plot of Predictions vs. Actual Labels.\
 
-The same, however, is not a good generative model, because of the assumption that the training dataset is deterministic. This can also be seen in the plot below, where points generated from the $\mathcal{N}(\mathbb{X}\hat{\beta}_{LASSO}, \hat{\sigma}_{MLE}^2)$ are quite spread out around the $y = x$ line.
+The same, however, is not a good generative model, because of the assumption that the training dataset is deterministic. This can also be seen in the plot below, where points generated from the $\mathcal{N}(\mathbb{X}\hat{\beta}_{LASSO}, \hat{\sigma}_{MLE}^2)$ are quite spread out around the $y = x$ line (relative to the spread seen in the non-generative, deterministic model).
 
 ``` {r, echo = FALSE, fig.asp = 0.5}
 # estimate sigma: use MLE now ;-)
 y_train <- unlist(train_data[, "Fat"])
 y_train_pred <- predict(model_optimal_lambda, as.matrix(subset(train_data, select = -Fat)))
-MLE_sigma_estimate <- sum((y_train - y_train_pred)^2)/nrow(train_data)
+MLE_sigma_estimate <- sqrt(sum((y_train - y_train_pred)^2)/nrow(train_data))
 
 # generate labels from distribution N(y_train_pred, MLE_sigma_estimate*I)
 y_generated <- rnorm(length(y_test), y_test_pred_opt_lambda, MLE_sigma_estimate)
@@ -586,6 +585,12 @@ ggplot(data.frame(y_test, y_generated)) +
 ## Appendix: Code
 
 ``` {r, eval = FALSE}
+library(readr)
+library(kknn)
+library(ggplot2)
+library(data.table)
+library(glmnet)
+
 #Assignment 1
 #1.1
 digits <- read.csv("optdigits.csv", header = F)
@@ -1043,7 +1048,7 @@ ggplot(data.frame(y_test, y_test_pred_opt_lambda)) +
 y_train <- unlist(train_data[, "Fat"])
 y_train_pred <- predict(model_optimal_lambda, 
                         as.matrix(subset(train_data, select = -Fat)))
-MLE_sigma_estimate <- sum((y_train - y_train_pred)^2)/nrow(train_data)
+MLE_sigma_estimate <- sqrt(sum((y_train - y_train_pred)^2)/nrow(train_data))
 
 # generate labels from distribution N(y_train_pred, MLE_sigma_estimate*I)
 y_generated <- rnorm(length(y_test), y_test_pred_opt_lambda, MLE_sigma_estimate)
