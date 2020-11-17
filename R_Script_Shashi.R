@@ -27,21 +27,27 @@ test_data <- optdigits[test_indices, ]
 # train k-NN model with k = 30 using kknn function as asked
 model_30_NN_train <- kknn(formula = X65~., kernel = "rectangular", train = train_data, test = train_data, k = 30)
 model_30_NN_test <- kknn(formula = X65~., kernel = "rectangular", train = train_data, test = test_data, k = 30)
+model_30_NN_val <- kknn(formula = X65~., kernel = "rectangular", train = train_data, test = val_data, k = 30)
 
 # Confusion matrices for train and test datasets
 train_c_table <- table(train_data$X65, fitted(model_30_NN_train))
+val_c_table <- table(val_data$X65, fitted(model_30_NN_val))
 test_c_table <- table(test_data$X65, fitted(model_30_NN_test))
 
 cat("Confusion matrix for Training Dataset is: \n")
 print(train_c_table)
+cat("Confusion matrix for Validation Dataset is: \n")
+print(val_c_table)
 cat("Confusion matrix for Test Dataset is: \n")
 print(test_c_table)
 
 # misclassification errors for the training and test data
 training_misclass <- round((1-sum(diag(train_c_table))/sum(train_c_table))*100, 2)
+val_misclass <- round((1-sum(diag(val_c_table))/sum(val_c_table))*100, 2)
 test_misclass <- round((1-sum(diag(test_c_table))/sum(test_c_table))*100, 2)
 
 cat("Training mis-classification rate is: ", training_misclass, "%", sep = "")
+cat("Validation mis-classification rate is: ", val_misclass, "%", sep = "")
 cat("Test mis-classification rate is: ", test_misclass, "%", sep = "")
 
 # cases with (a) 'ground truth' class = '8', and (b) highest or lowest modelled probability of belonging to class '8'
@@ -214,7 +220,7 @@ model1_train_MSE <- MSE(train_data, model1_optimal_weights)
 model1_test_MSE <- MSE(test_data, model1_optimal_weights)
 model1_AIC <- -2*model_log_likelihood(model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model1_optimal_weights_sigma)
+                       num_simulations = 500, model1_optimal_weights_sigma)
 
 # model 2: lambda = 100
 model2_optimal_weights_sigma <- ridge_opt(train_data, lambda = 100)
@@ -224,7 +230,7 @@ model2_train_MSE <- MSE(train_data, model2_optimal_weights)
 model2_test_MSE <- MSE(test_data, model2_optimal_weights)
 model2_AIC <- -2*model_log_likelihood(model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model2_optimal_weights_sigma)
+                       num_simulations = 500, model2_optimal_weights_sigma)
 
 # model 3: lambda = 1000
 model3_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1000)
@@ -234,7 +240,7 @@ model3_train_MSE <- MSE(train_data, model3_optimal_weights)
 model3_test_MSE <- MSE(test_data, model3_optimal_weights)
 model3_AIC <- -2*model_log_likelihood(model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model3_optimal_weights_sigma)
+                       num_simulations = 500, model3_optimal_weights_sigma)
 
 # plot performance
 MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), Legend = rep(c("Training", "Test"), 3), 

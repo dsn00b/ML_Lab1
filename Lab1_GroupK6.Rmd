@@ -283,7 +283,7 @@ model1_train_MSE <- MSE(train_data, model1_optimal_weights)
 model1_test_MSE <- MSE(test_data, model1_optimal_weights)
 model1_AIC <- -2*model_log_likelihood(model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model1_optimal_weights_sigma)
+                       num_simulations = 50000, model1_optimal_weights_sigma)
 
 # model 2: lambda = 100
 model2_optimal_weights_sigma <- ridge_opt(train_data, lambda = 100)
@@ -293,7 +293,7 @@ model2_train_MSE <- MSE(train_data, model2_optimal_weights)
 model2_test_MSE <- MSE(test_data, model2_optimal_weights)
 model2_AIC <- -2*model_log_likelihood(model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model2_optimal_weights_sigma)
+                       num_simulations = 50000, model2_optimal_weights_sigma)
 
 # model 3: lambda = 1000
 model3_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1000)
@@ -303,7 +303,7 @@ model3_train_MSE <- MSE(train_data, model3_optimal_weights)
 model3_test_MSE <- MSE(test_data, model3_optimal_weights)
 model3_AIC <- -2*model_log_likelihood(model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 50, model3_optimal_weights_sigma)
+                       num_simulations = 50000, model3_optimal_weights_sigma)
 
 # plot performance
 MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), Legend = rep(c("Training", "Test"), 3), 
@@ -329,7 +329,7 @@ In terms of AIC as well, the optimal value of $\lambda$ within the set $\{1, 100
 AIC_data <- data.frame(log_10_lambda = c(0, 2, 3), value = c(model1_AIC, model2_AIC, model3_AIC))
 
 ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() + 
-  geom_vline(xintercept = 2, linetype = "dotted") + 
+  geom_vline(xintercept = 3, linetype = "dotted") + 
   xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Model AIC") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 ```
