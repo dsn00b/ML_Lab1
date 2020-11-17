@@ -102,8 +102,8 @@ for (k_choice in 1:30) {
   missclass_val <- c(missclass_val, 1-sum(diag(val_c_table))/sum(val_c_table))
   
   # cross-entropy
-  cross_entropy_train <- c(cross_entropy_train, sum(one_hot_y_train * -log(train_model$prob + 10^-15))/num_train_examples)
-  cross_entropy_val <- c(cross_entropy_val, sum(one_hot_y_val * -log(val_model$prob + 10^-15))/num_val_examples)
+  cross_entropy_train <- c(cross_entropy_train, sum(one_hot_y_train * -log(train_model$prob + 10^-15))) #/num_train_examples
+  cross_entropy_val <- c(cross_entropy_val, sum(one_hot_y_val * -log(val_model$prob + 10^-15))) #/num_val_examples
   
 }
 
@@ -114,7 +114,7 @@ cross_entropy <- melt(data.table(k = 1:30, Training = cross_entropy_train, Valid
 
 # plot misclassification rates and cross-entropy by 'k' for training and validation datasets
 ggplot(missclass) + geom_line(aes(k, value, colour = Legend)) + theme_bw() + 
-  geom_vline(xintercept = 3, linetype = "dotted") + scale_x_continuous(breaks = 1:30) +
+  geom_vline(xintercept = 4, linetype = "dotted") + scale_x_continuous(breaks = 1:30) +
   xlab("Hyper-Parameter 'k'") + ylab("Mis-classification Rates") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 
@@ -325,38 +325,46 @@ lasso_degrees_of_freedom <- function(lasso_model, y, X, num_simulations, num_sam
 }
 
 # fit
-lambda_choices <- c(10^-3, 10^-2, 10^-1, 1, 10, 100, 1000)
-zero_coeff <- c()
-sum_abs_val_params <- c()
-lasso_deg_freedoms <- c()
-for (lam in lambda_choices){
+#lambda_choices <- c(10^-3, 10^-2, 10^-1, 1, 10, 100, 1000)
+#zero_coeff <- c()
+#sum_abs_val_params <- c()
+#lasso_deg_freedoms <- c()
+#for (lam in lambda_choices){
   
   lasso <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                  y = unlist(train_data[, "Fat"]), alpha = 1, lambda = lam)
-  sum_abs_val_params <- c(sum_abs_val_params, sum(abs(lasso$beta)))
-  zero_coeff <- c(zero_coeff, sum(lasso$beta == 0))
-  lasso_deg_freedoms <- c(lasso_deg_freedoms, 
-                          lasso_degrees_of_freedom(
-                            lasso, tecator[, "Fat"], subset(tecator, select = -Fat), 
-                            num_simulations = 50, num_samples = 100)) # using full dataset rather than train / test, because why not!
+                  y = unlist(train_data[, "Fat"]), alpha = 1
+                  #, lambda = lam
+                  , family = "gaussian")
+  #sum_abs_val_params <- c(sum_abs_val_params, sum(abs(lasso$beta)))
+  #zero_coeff <- c(zero_coeff, sum(lasso$beta == 0))
   
-}
+  #lasso_deg_freedoms <- c(lasso_deg_freedoms, 
+  #                        lasso_degrees_of_freedom(
+  #                          lasso, tecator[, "Fat"], subset(tecator, select = -Fat), 
+  #                          num_simulations = 50, num_samples = 100)) # using full dataset rather than train / test, because why not!
+  
+#}
 
 # plot results
-lasso_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
-                            Legend = c(rep("# Parameters with Coefficients = 0", 7), 
-                                       rep("Sum of absolute values of Coefficients", 7)),
-                            value = c(zero_coeff, sum_abs_val_params))
+plot(lasso)
+  
+#lasso_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
+#                            Legend = c(rep("# Parameters with Coefficients = 0", 7), 
+#                                       rep("Sum of absolute values of Coefficients", 7)),
+#                            value = c(zero_coeff, sum_abs_val_params))
 
-ggplot(lasso_results) + geom_line(aes(log_10_lambda, value, colour = Legend)) + theme_bw() + 
-  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
-  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + ylab("Parameter Attributes") + 
-  ggtitle("Relationship between LASSO Lambda and parameter attributes")
+#ggplot(lasso_results) + geom_line(aes(log_10_lambda, value, colour = Legend)) + theme_bw() + 
+#  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
+#  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + ylab("Parameter Attributes") + 
+#  ggtitle("Relationship between LASSO Lambda and parameter attributes")
 
-lasso_deg_freedom <- data.frame(log_10_lambda = rep(-3:3, 2), value = lasso_deg_freedoms)
+#lasso_deg_freedom <- data.frame(log_10_lambda = rep(-3:3, 2), value = lasso_deg_freedoms)
 
-ggplot(lasso_deg_freedom) + geom_line(aes(log_10_lambda, value)) + theme_bw() +
-  scale_x_continuous(breaks = -3:3) + xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + 
+lasso_deg_freedom <- data.frame(lambda = lasso$lambda, value = lasso$df)
+
+ggplot(lasso_deg_freedom) + geom_point(aes(lambda, value)) + theme_bw() +
+  #scale_x_continuous(breaks = -3:3) + 
+  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + 
   ylab("Model Degrees of Freedom") + ggtitle("Relationship between LASSO Lambda and Model Degrees of Freedom")
 
 ## ridge regression
@@ -397,7 +405,7 @@ for (i in 1:100) {
   cv_means <- cbind(cv_means, cv_lasso$cvm)
   cv_min_lambda <- c(cv_min_lambda, cv_lasso$lambda.min)
 }
-
+plot(cv_lasso)
 # plot
 ggplot(data.frame(log_10_lambda = -3:3, cv_score = rev(rowMeans(cv_means)))) + 
   geom_line(aes(log_10_lambda, cv_score)) + scale_x_continuous(breaks = -3:3) +
@@ -458,6 +466,7 @@ y_train_pred <- predict(model_optimal_lambda, as.matrix(subset(train_data, selec
 MLE_sigma_estimate <- sqrt(sum((y_train - y_train_pred)^2)/nrow(train_data))
 
 # generate labels from distribution N(y_train_pred, MLE_sigma_estimate*I)
+set.seed(12345)
 y_generated <- rnorm(length(y_test), y_test_pred_opt_lambda, MLE_sigma_estimate)
 
 # plot generated labels vs. original labels

@@ -173,7 +173,7 @@ plot(1:30, r_v, ylim = c(0,0.14), type = "l", xlab = "K", ylab = "cross entropy"
 The optimized K value is 6, because at that point, the risk value is the lowest with a value being 0.0172. The reason cross entropy is a better approach of estimating optimal model here is because it uses the probabilities of each class for every observation. While the mis-classification rate only count the final result class of each observation. Thus, cross-entropy can detect which model is better even though their mis-classification rates are the same.
 
 
-## Question 2
+## Assignment 2
 
 Bayesian ridge regression model for the data (without the intercept parameter) is: $$\mathbf{y} | \mathbb{X}, w_0, \mathbf{w} \sim N(w_0 + \mathbb{X}\mathbf{w}, \, \sigma^2\mathbb{I}),$$
 where:
