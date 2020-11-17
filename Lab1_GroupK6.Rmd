@@ -656,7 +656,7 @@ The function we are looking to optimize in this case is loss function of the LAS
 
 
 $$\sum\limits_{i=1}^N{(y_i - \mathbb{X}_i\boldsymbol{\beta})^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
-Where \N is the number of observations and \mathbb{X} is the matrix of features and \y is the dependent variable. \Beta are the parameters that the shrinkage function right part of the plus sign. With \lambda being the shrinkage parameter and P the number of features. Where the chosen \lambda will shrink the \Beta paramters. 
+Where $N$ is the number of observations and $\mathbb{X}$ is the matrix of features and y is the dependent variable. $\beta$ are the parameters that the shrinkage function right part of the plus sign. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ paramters. 
 
 ### 3.3
 ```{r, echo=FALSE}
@@ -703,7 +703,7 @@ ggplot(data = plot_data ,aes( x= log_lambda , y = df)) + geom_point() +
 
 ```
 
-The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large \lambda it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
+The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large $\lambda$ it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
 
 ```{r, echo=FALSE}
 
@@ -727,7 +727,7 @@ plot(cv_lasso)
 
 ```
 
-The graph shows that the lowest MSE is found at \lambda = 0.004561105 which is at $log(\lambda) = -5.39019$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately -2.8 and then where it will slowdown the increasing rate of MSE.
+The graph shows that the lowest MSE is found at $\lambda = 0.004561105$ which is at $log(\lambda) = -5.39019$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately -2.8 and then where it will slowdown the increasing rate of MSE.
 
 ```{r, echo=FALSE}
 
