@@ -770,12 +770,17 @@ ggplot(plot_data_36, aes(x = ypredlm, y = s0)) + geom_point() + labs(title = "Co
 ### 3.7
 
 ```{r}
+#Predicting from lasso lambda opt
+preds <- predict(lasso3_6_opt, test_scale[,-101])
 
-#dunno what to do really
+#calculating new sigma
+sigma<- sqrt(mean((train_scale[,101] - predict(lasso3_6_opt,train_scale[,-101]))^2 ))
 
-new_targets <- predict(lasso3_6_opt, test_scale[,-101])
+#generating new data
+new_targets <- rnorm(n = nrow(test_scale),preds, sigma )
 
-sigma <- rnorm(n = 108, )
+generated_data <- data.frame("ytest" = test_scale[,101], "generated" = new_targets )
+ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()
 ```
 
 
