@@ -582,6 +582,227 @@ ggplot(data.frame(y_test, y_generated)) +
   ggtitle("Goodness of fit - Generative LASSO model with optimised lambda")
 ```
 
+
+
+
+# Part done by Tore so far
+
+So 3.6 and 3.7, are not finished need to do the hypothisis test, and was abit unsure as what to plot thought it to be abit unclear for 3.6. 
+
+
+### 3.1
+```{r, echo=FALSE}
+fats <- read.csv("tecator.csv", row.names = 1)
+fats <- fats[, -c(102,103)]
+set.seed(12345)
+n3 <- nrow(fats)
+id_fat_train <- sample(1:n3, floor(n3*0.5))
+id_fat_test <- setdiff(1:n3, id_fat_train)
+
+train_fat <- fats[id_fat_train,]
+test_fat <- fats[id_fat_test,]
+```
+
+
+
+```{r,echo =FALSE}
+
+
+# train_fat<-scale(train_fat)
+# test_fat <- scale(test_fat)
+train_fat <- as.data.frame(train_fat)
+test_fat<-as.data.frame(test_fat)
+lm_fats_train <- lm(Fat ~., data = train_fat )
+
+#train_mse <- mean((train_fat - predict(lm_fats_train, train_fat))^2)
+
+summary(lm_fats_train)
+
+#predictions 
+predicted_train_fat <- predict(lm_fats_train)
+
+#train mse
+mse_train <- mean((train_fat$Fat - predicted_train_fat)^2)
+
+predicted_test_fat<-predict(lm_fats_train, test_fat)
+
+#test mse
+mse_test <- mean((test_fat$Fat- predicted_test_fat)^2)
+
+cat("Training MSE: ", mse_train, ". Test MSE: ", mse_test)
+
+```
+
+
+
+With the very low training MSE and comparably high test MSE we have reason to believe that there is  overfitting occurring with the model. From viewing the summary for the training model it was found to give a adjusted R-square of 0.9994% which gives an clear indication that the model is overfit.
+
+```{r, echo=FALSE}
+par(mfrow = c(2,2))
+
+plot(lm_fats_train)
+
+```
+
+
+
+Analyzing the plots we find that the assumptions that the model residuals are i.i.d can be assumed to be approximatly fullfilled, it's clear that the residuals do not follow anything similar to a normal distribution with mean 0 and variance 1 when observing the QQ-plot. Hence the assumptions for the model are not fulfilled so we should not draw any conclusions from the model.
+
+
+
+### 3.2
+
+The function we are looking to optimize in this case is loss function of the LASSO model.
+
+
+$$\sum\limits_{i=1}^N{(y_i - \mathbb{X}_i\boldsymbol{\beta})^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
+Where \N is the number of observations and \mathbb{X} is the matrix of features and \y is the dependent variable. \Beta are the parameters that the shrinkage function right part of the plus sign. With \lambda being the shrinkage parameter and P the number of features. Where the chosen \lambda will shrink the \Beta paramters. 
+
+### 3.3
+```{r, echo=FALSE}
+
+train_scale<-scale(train_fat)
+test_scale <- scale(test_fat)
+
+x<-as.matrix(train_scale[,c(1:100)])
+y <- as.matrix(train_scale[,101])
+
+
+lambda_values<-seq(from = 0.01, to = 0.1, by = 0.002)
+lambda_values<-rev(lambda_values)
+lasso3_3_df <- 0
+i <- 1
+
+#Finding where we get 3 parameters numerically
+while(lasso3_3_df < 3){
+
+lasso3_3 <- glmnet(x = x, y = y, alpha = 1, lambda = lambda_values[i])
+
+lasso3_3_df <-   lasso3_3$df
+i = i+1
+}
+
+log(lambda_values[i])
+
+lasso3_3_for_plot<-glmnet(x = x, y = y, alpha = 1)
+
+plot(lasso3_3_for_plot, "lambda" , main = "LASSO model coefficent convergence")
+
+
+```
+
+From the plot we can see that where the function converges to 3 features that have non zero coefficients is approximately at $e^[-2.6]$ and it was numerically shown that at $log(\lambda) = -2.688248$ the function would have a df of 3 and 3 features with non zero coefficents.
+
+### 3.4
+
+```{r, echo=FALSE}
+
+plot_data <- data.frame("log_lambda" = log(lasso3_3_for_plot$lambda), "df" = lasso3_3_for_plot$df )
+ggplot(data = plot_data ,aes( x= log_lambda , y = df)) + geom_point() + 
+  labs(title = "Degrees of freedom vs Log lambda", x = "Log lambda", y = "Degrees of freedom")
+
+```
+
+The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large \lambda it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
+
+```{r, echo=FALSE}
+
+lasso3_5 <- glmnet(x = x, y = y, alpha = 0)
+plot(lasso3_5, "lambda")
+log(lambda_values[i])
+
+lasso3_5_for_plot<-glmnet(x = x, y = y, alpha = 0)
+
+plot(lasso3_3_for_plot, "lambda", main = "Lasso regression: Coef vs log lambda")
+plot(lasso3_5_for_plot, "lambda", main = "Ridge regression: Coef vs log Lambda")
+```
+
+As seen in the graphs the lasso function will converge the coefficients of the model to 0 whereas the ridge regression model will reduce the coefficients close to zero but never to zero.
+
+```{r, echo=FALSE}
+# cross validation with 10 folds
+cv_lasso <- cv.glmnet(x = x, y = y, alpha = 1)
+cv_lasso$lambda.min
+plot(cv_lasso)
+
+```
+
+The graph shows that the lowest MSE is found at \lambda = 0.004561105 which is at $log(\lambda) = -5.39019$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately -2.8 and then where it will slowdown the increasing rate of MSE.
+
+```{r, echo=FALSE}
+
+
+lasso3_6_opt <- glmnet(x = x, y = y, alpha = 1, lambda = cv_lasso$lambda.min)
+
+lasso3_6_opt$df
+#We find that 7 variables were used in the 
+
+lambda_test<-exp(-2)
+lasso3_6_lambda_chosen <- glmnet(x = x, y = y, alpha = 1, lambda = lambda_test)
+
+lasso3_6_lambda_chosen$df
+
+#need to check if significantly diffrent
+
+```
+
+```{r}
+
+
+
+```
+
+
+
+
+```{r, echo = FALSE}
+
+#plotting predicted vs observed values
+
+y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_scale[,-101]))
+
+plot_data_36 <- data.frame("ypredlm" = scale(predicted_test_fat) , "ylassopred" = y_hat_lasso)
+ggplot(plot_data_36, aes(x = ypredlm, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n predicted values from linear regression", x = "Predicted values from LM", y = "Predicted values from LASSO")
+```
+
+
+
+
+### 3.7
+
+```{r}
+
+
+preds <- predict(lasso3_6_opt, test_scale[,-101])
+
+sigma<- sqrt(mean((train_scale[,101] - predict(lasso3_6_opt,train_scale[,-101]))^2 ))
+new_targets <- rnorm(n = nrow(test_scale),preds, sigma )
+
+generated_data <- data.frame("ytest" = test_scale[,101], "generated" = new_targets )
+ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Appendix: Code
 
 ``` {r, eval = FALSE}
