@@ -120,14 +120,17 @@ plot(1:30, r_v, type = "l", xlab = "K", ylab = "cross entropy")
 #2.2
 parkinson <- read.csv("parkinsons.csv")
 #scale: (data-mu)/sd
-sd_features <- apply(parkinson[7:22], 2, sd) 
-parkinson[7:22] <- (parkinson[7:22] - colMeans(parkinson[7:22]))/sd_features
-n_all <- dim(parkinson)[1]
+parkinson_x <- parkinson[c(5,7:22)]
+mu_features <- apply(parkinson_x, 2, mean) 
+sd_features <- apply(parkinson_x, 2, sd)
+parkinson_x <- as.data.frame(sapply(1:ncol(parkinson_x), function(x) (parkinson_x[x] - mu_features[x])/sd_features[x]))
+
+n_all <- dim(parkinson_x)[1]
 set.seed(12345)
 id <- sample(1:n_all, floor(n_all*0.6)) 
-train <- parkinson[id,]
+train <- parkinson_x[id,]
 id1 <- setdiff(1:n_all, id) 
-test <- parkinson[id1,]
+test <- parkinson_x[id1,]
 
 #2.3
 #a
@@ -151,11 +154,16 @@ RidgeOpt <- function(lamda, Y, X){
   return(optim(c(rnorm(nf), 1), Ridge, lamda = lamda, Y = Y, X = X, method = "BFGS"))
 }
 #d
-DF <- function(param, lamda, X){
+DF <- function(param, lamda, X, Y, it_times=100){
   nf <- ncol(X)
   w <- param[1:nf]
   sigma <- param[nf+1]
-  sum(diag(solve(t(X)%*%X + lamda * diag(dim(X)[2])) %*% t(X) %*% X))
+  # sum_cv <- 0
+  # for (i in 1:it_times) {
+  #   sum_cv <- sum_cv + cov(Y, X %*% w)
+  # }
+  # return(sum_cv/(sigma^2))
+  sum(diag(solve(t(X)%*%X + lamda * diag(dim(X)[2])) %*% (t(X) %*% X)))
 }
 
 #2.4
@@ -165,29 +173,29 @@ MSE <- function(Y, Yi) {
 }
 #train
 Ytr <- train$motor_UPDRS
-Xtr <- as.matrix(train[,7:22])
+Xtr <- as.matrix(train[-1])
 result1 <- RidgeOpt(1, Ytr, Xtr)
-MSE(Ytr,  result1$par[1:ncol(Xtr)] %*% t(Xtr)) #246.9995
+MSE(Ytr,  Xtr %*% result1$par[1:ncol(Xtr)]) #0.8732769
 result2 <- RidgeOpt(100, Ytr, Xtr)
-MSE(Ytr,  result2$par[1:ncol(Xtr)] %*% t(Xtr)) #369.5664
+MSE(Ytr,  Xtr %*% result2$par[1:ncol(Xtr)]) #0.8790672
 result3 <- RidgeOpt(10000, Ytr, Xtr)
-MSE(Ytr,  result3$par[1:ncol(Xtr)] %*% t(Xtr)) #419.7631
+MSE(Ytr,  Xtr %*% result3$par[1:ncol(Xtr)]) #0.9678104
 #test
 Yt <- test$motor_UPDRS
-Xt <- as.matrix(test[,7:22])
-MSE(Yt,  result1$par[1:ncol(Xt)] %*% t(Xt)) #257.4803
-MSE(Yt,  result2$par[1:ncol(Xt)] %*% t(Xt)) #379.8558
-MSE(Yt,  result3$par[1:ncol(Xt)] %*% t(Xt)) #425.0116
-#The least error is from when lambda equals to 1.
+Xt <- as.matrix(test[-1])
+MSE(Yt,  Xt %*% result1$par[1:ncol(Xt)]) #0.9290358
+MSE(Yt,  Xt %*% result2$par[1:ncol(Xt)]) #0.9262726
+MSE(Yt,  Xt %*% result3$par[1:ncol(Xt)]) #0.9872191
+#The least error is from when lambda equals to 100.
 #Why is MSE a more appropriate measure here than other empirical risk functions?
 
 #2.5
 AICscore <- function(result, lamda, Y, X){
-  -2*Loglikelihood(result$par, Y, X) + 2*DF(result$par, lamda, X)
+  -2*Loglikelihood(result$par, Y, X) + 2*DF(result$par, lamda, X, Y)
 }
-AICscore(result1, 1, Ytr, Xtr) #59996.37
-AICscore(result2, 100, Ytr, Xtr) #66081.87
-AICscore(result3, 10000, Ytr, Xtr) #58515.11
+AICscore(result1, 1, Ytr, Xtr) #9553.596
+AICscore(result2, 100, Ytr, Xtr) #9569.044
+AICscore(result3, 10000, Ytr, Xtr) #9892.271
 #What is the optimal model according to AIC criterion? 
 #Lambda equals to 1000 is the optimal one.
 #What is the theoretical advantage of this kind of model selection compared to the holdout model selection done in step 4?
