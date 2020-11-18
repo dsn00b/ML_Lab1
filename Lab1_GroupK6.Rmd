@@ -584,10 +584,8 @@ ggplot(data.frame(y_test, y_generated)) +
 
 
 
-# Part done by Tore so far
 
-So 3.6 and 3.7, are not finished need to do the hypothisis test, and was abit unsure as what to plot thought it to be abit unclear for 3.6. 
-
+# Assignment 3: Linear regression and LASSO
 
 ### 3.1
 ```{r, echo=FALSE}
@@ -634,7 +632,7 @@ cat("Training MSE: ", mse_train, ". Test MSE: ", mse_test)
 
 
 
-With the very low training MSE and comparably high test MSE we have reason to believe that there is  overfitting occurring with the model. From viewing the summary for the training model it was found to give a adjusted R-square of 0.9994% which gives an clear indication that the model is overfit.
+With the very low training MSE and comparably high test MSE we have reason to believe that there is overfitting occurring with the model. From viewing the summary for the training model it was found to give a adjusted R-square of 0.9994% which gives an clear indication that the model is overfit.
 
 ```{r, echo=FALSE}
 par(mfrow = c(2,2))
@@ -645,7 +643,7 @@ plot(lm_fats_train)
 
 
 
-Analyzing the plots we find that the assumptions that the model residuals are i.i.d can be assumed to be approximatly fullfilled, it's clear that the residuals do not follow anything similar to a normal distribution with mean 0 and variance 1 when observing the QQ-plot. Hence the assumptions for the model are not fulfilled so we should not draw any conclusions from the model.
+Analyzing the plots we find that the assumptions that the model residuals are i.i.d can be assumed to be approximately fullfilled, it's clear that the residuals do not follow anything similar to a normal distribution with mean 0 and variance 1 when observing the QQ-plot. Hence the assumptions for the model are not fulfilled so we should not draw any conclusions from the model.
 
 
 
@@ -655,16 +653,15 @@ The function we are looking to optimize in this case is loss function of the LAS
 
 
 $$\sum\limits_{i=1}^N{(y_i - \mathbb{X}_i\boldsymbol{\beta})^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
-Where \N is the number of observations and \mathbb{X} is the matrix of features and \y is the dependent variable. \Beta are the parameters that the shrinkage function right part of the plus sign. With \lambda being the shrinkage parameter and P the number of features. Where the chosen \lambda will shrink the \Beta paramters. 
+Where $\N$ is the number of observations and $\mathbb{X}$ is the matrix of features and $\y$ is the dependent variable. $\beta$ are the parameters that the shrinkage function right part of the plus sign. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ parameters. 
 
 ### 3.3
 ```{r, echo=FALSE}
 
-train_scale<-scale(train_fat)
-test_scale <- scale(test_fat)
 
-x<-as.matrix(train_scale[,c(1:100)])
-y <- as.matrix(train_scale[,101])
+
+x<-as.matrix(train_fat[,c(1:100)])
+y <- as.matrix(train_fat[,101])
 
 
 lambda_values<-seq(from = 0.01, to = 0.1, by = 0.002)
@@ -702,7 +699,7 @@ ggplot(data = plot_data ,aes( x= log_lambda , y = df)) + geom_point() +
 
 ```
 
-The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large \lambda it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
+The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large $\lambda$ it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
 
 ```{r, echo=FALSE}
 
@@ -720,13 +717,19 @@ As seen in the graphs the lasso function will converge the coefficients of the m
 
 ```{r, echo=FALSE}
 # cross validation with 10 folds
+set.seed(12345)
 cv_lasso <- cv.glmnet(x = x, y = y, alpha = 1)
-cv_lasso$lambda.min
-plot(cv_lasso)
+min_lambda<-as.numeric(which(cv_lasso$lambda.min==cv_lasso$lambda))
+point_upper_limit_of_CI<-cv_lasso$cvup[min_lambda]
+plot(cv_lasso, main = "Cross-validation 10 fold CI:s for MSE vs values of lambda")
+abline(h = point_upper_limit_of_CI)
+
+
 
 ```
+From the cross-validation plot we can easier differentiate with the help of the black horizontal line which goes from the top confidence interval for the mean-square error for the optimal lambda that it crosses within the confidence interval for $log(\lambda) = -2$. Which means that we cannot say that the optimal model is significantly better than the $log(\lambda) = -2$ model.
 
-The graph shows that the lowest MSE is found at \lambda = 0.004561105 which is at $log(\lambda) = -5.39019$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately -2.8 and then where it will slowdown the increasing rate of MSE.
+The graph shows that the lowest MSE is found at $\lambda = 0.05234206$ which is at $log(\lambda) = -2.949955$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately $log(\lambda)$ reaches 0 and then where it will slowdown the increasing rate of MSE.
 
 ```{r, echo=FALSE}
 
@@ -741,26 +744,17 @@ lasso3_6_lambda_chosen <- glmnet(x = x, y = y, alpha = 1, lambda = lambda_test)
 
 lasso3_6_lambda_chosen$df
 
-#need to check if significantly diffrent
 
 ```
-
-```{r}
-
-
-
-```
-
-
 
 
 ```{r, echo = FALSE}
 
 #plotting predicted vs observed values
 
-y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_scale[,-101]))
+y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_fat[,-101]))
 
-plot_data_36 <- data.frame("ypredlm" = scale(predicted_test_fat) , "ylassopred" = y_hat_lasso)
+plot_data_36 <- data.frame("ypredlm" = scale(test_fat[,101]) , "ylassopred" = y_hat_lasso)
 ggplot(plot_data_36, aes(x = ypredlm, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n predicted values from linear regression", x = "Predicted values from LM", y = "Predicted values from LASSO")
 ```
 
@@ -771,17 +765,23 @@ ggplot(plot_data_36, aes(x = ypredlm, y = s0)) + geom_point() + labs(title = "Co
 
 ```{r}
 #Predicting from lasso lambda opt
-preds <- predict(lasso3_6_opt, test_scale[,-101])
+
+preds <- predict(lasso3_6_opt,as.matrix( test_fat[,-101]))
 
 #calculating new sigma
-sigma<- sqrt(mean((train_scale[,101] - predict(lasso3_6_opt,train_scale[,-101]))^2 ))
+sigma<- sqrt(mean((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101])))^2 ))
 
 #generating new data
-new_targets <- rnorm(n = nrow(test_scale),preds, sigma )
+new_targets <- rnorm(n = nrow(test_fat),preds, sigma )
 
-generated_data <- data.frame("ytest" = test_scale[,101], "generated" = new_targets )
-ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()
+generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
+ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
+  labs(title = "Generated data vs observed test data", x = "test y", y = "Generated data")
+
+
+
 ```
+
 
 
 
