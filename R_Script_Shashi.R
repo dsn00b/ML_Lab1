@@ -102,8 +102,8 @@ for (k_choice in 1:30) {
   missclass_val <- c(missclass_val, 1-sum(diag(val_c_table))/sum(val_c_table))
   
   # cross-entropy
-  cross_entropy_train <- c(cross_entropy_train, sum(one_hot_y_train * -log(train_model$prob + 10^-15))) #/num_train_examples
-  cross_entropy_val <- c(cross_entropy_val, sum(one_hot_y_val * -log(val_model$prob + 10^-15))) #/num_val_examples
+  cross_entropy_train <- c(cross_entropy_train, sum(one_hot_y_train * -log(train_model$prob + 10^-15))/num_train_examples)
+  cross_entropy_val <- c(cross_entropy_val, sum(one_hot_y_val * -log(val_model$prob + 10^-15))/num_val_examples)
   
 }
 
@@ -184,25 +184,12 @@ ridge_opt <- function(X, lambda) {
   
 }
 
-degrees_of_freedom <- function(X, num_samples, num_simulations, optimal_weigths_sigma) {
+degrees_of_freedom <- function(X, lambda) {
   
-  n <- ncol(X)
-  r <- nrow(X)
-  optimal_weigths <- optimal_weigths_sigma[1:(n-1)] # assumes no intercept as asked
-  optimal_sigma <- optimal_weigths_sigma[n]
-  sum_cov = 0
-  
-  while (num_simulations > 0) {
-    
-    set.seed(num_simulations)
-    sample_data <- X[sample(1:r, num_samples), ]
-    sum_cov <- sum_cov + cov(sample_data[, 1], sample_data[, -1] %*% optimal_weigths)
-    num_simulations = num_simulations - 1
-    
-  }
-  
-  return(as.numeric(sum_cov/optimal_sigma^2))
-  
+  mat <- tcrossprod(X %*% solve(crossprod(X) + diag(lambda, ncol(X), ncol(X))), X)
+                    
+  return(sum(diag(mat)))
+                    
 }
 
 MSE <- function(X, optimal_weights) { # based on definition here: https://en.wikipedia.org/wiki/Mean_squared_error
@@ -218,9 +205,9 @@ model1_optimal_weights <- model1_optimal_weights_sigma[1:(n_col - 1)]
 model1_optimal_sigma <- model1_optimal_weights_sigma[n_col]
 model1_train_MSE <- MSE(train_data, model1_optimal_weights)
 model1_test_MSE <- MSE(test_data, model1_optimal_weights)
-model1_AIC <- -2*model_log_likelihood(model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
-  2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 500, model1_optimal_weights_sigma)
+model1_AIC <- -2*model_log_likelihood(
+  model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
+  2*degrees_of_freedom(as.matrix(train_data), lambda = 1)
 
 # model 2: lambda = 100
 model2_optimal_weights_sigma <- ridge_opt(train_data, lambda = 100)
@@ -228,9 +215,9 @@ model2_optimal_weights <- model2_optimal_weights_sigma[1:(n_col - 1)]
 model2_optimal_sigma <- model2_optimal_weights_sigma[n_col]
 model2_train_MSE <- MSE(train_data, model2_optimal_weights)
 model2_test_MSE <- MSE(test_data, model2_optimal_weights)
-model2_AIC <- -2*model_log_likelihood(model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
-  2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 500, model2_optimal_weights_sigma)
+model2_AIC <- -2*model_log_likelihood(
+  model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
+  2*degrees_of_freedom(as.matrix(train_data), lambda = 100)
 
 # model 3: lambda = 1000
 model3_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1000)
@@ -238,9 +225,9 @@ model3_optimal_weights <- model3_optimal_weights_sigma[1:(n_col - 1)]
 model3_optimal_sigma <- model3_optimal_weights_sigma[n_col]
 model3_train_MSE <- MSE(train_data, model3_optimal_weights)
 model3_test_MSE <- MSE(test_data, model3_optimal_weights)
-model3_AIC <- -2*model_log_likelihood(model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
-  2*degrees_of_freedom(as.matrix(train_data), num_samples = 1000, 
-                       num_simulations = 500, model3_optimal_weights_sigma)
+model3_AIC <- -2*model_log_likelihood(
+  model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
+  2*degrees_of_freedom(as.matrix(train_data), lambda = 1000)
 
 # plot performance
 MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), Legend = rep(c("Training", "Test"), 3), 
@@ -295,34 +282,34 @@ cat("\nTest MSE is: ", test_mse)
 
 # objective function
 
-## $$\sum\limits_{i=1}^N{(y_i - \boldsymbol{\beta}\mathbb{X}_i)^2} + \lambda\sum\limits_{j=1}^p{|\beta_i|}$$
+## $$\sum\limits_{i=1}^N{(y_i - \boldsymbol{\beta}\mathbb{X}_i)^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
 
 # helper function: degrees of freedom
-lasso_degrees_of_freedom <- function(lasso_model, y, X, num_simulations, num_samples) {
+#lasso_degrees_of_freedom <- function(lasso_model, y, X, num_simulations, num_samples) {
+#  
+#  X <- as.matrix(X)
+#  y <- unlist(y)
+#  y_pred <- as.numeric(predict(lasso, X))
+#  r <- nrow(X)
+#  sum_cov = 0
+#  
+#  while (num_simulations > 0) {
+#    
+#    set.seed(num_simulations)
+#    sample_indices <- sample(1:r, num_samples)
+#    sample_X <- X[sample_indices, ]
+#    sample_y <- y[sample_indices]
+#    sample_y_pred <- y_pred[sample_indices]
+#    sum_cov <- sum_cov + cov(sample_y, sample_y_pred)
+#    num_simulations = num_simulations - 1
+#    
+#  }
   
-  X <- as.matrix(X)
-  y <- unlist(y)
-  y_pred <- as.numeric(predict(lasso, X))
-  r <- nrow(X)
-  sum_cov = 0
+#  sigma_hat_square <- sum((y - y_pred)^2)/num_samples
   
-  while (num_simulations > 0) {
-    
-    set.seed(num_simulations)
-    sample_indices <- sample(1:r, num_samples)
-    sample_X <- X[sample_indices, ]
-    sample_y <- y[sample_indices]
-    sample_y_pred <- y_pred[sample_indices]
-    sum_cov <- sum_cov + cov(sample_y, sample_y_pred)
-    num_simulations = num_simulations - 1
-    
-  }
+#  return(sum_cov/sigma_hat_square)
   
-  sigma_hat_square <- sum((y - y_pred)^2)/num_samples
-  
-  return(sum_cov/sigma_hat_square)
-  
-}
+#}
 
 # fit
 #lambda_choices <- c(10^-3, 10^-2, 10^-1, 1, 10, 100, 1000)
