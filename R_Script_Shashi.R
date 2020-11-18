@@ -333,7 +333,7 @@ cat("\nTest MSE is: ", test_mse)
 #}
 
 # plot results
-plot(lasso)
+plot(lasso, "lambda")
   
 #lasso_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
 #                            Legend = c(rep("# Parameters with Coefficients = 0", 7), 
@@ -354,51 +354,60 @@ ggplot(lasso_deg_freedom) + geom_point(aes(lambda, value)) + theme_bw() +
   xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + 
   ylab("Model Degrees of Freedom") + ggtitle("Relationship between LASSO Lambda and Model Degrees of Freedom")
 
+lasso$lambda[which(lasso$df == 3)]
+
 ## ridge regression
 
 # fit
-zero_coeff <- c()
-sum_params_squared <- c()
-for (lam in lambda_choices){
+#zero_coeff <- c()
+#sum_params_squared <- c()
+#for (lam in lambda_choices){
   
   ridge <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                  y = unlist(train_data[, "Fat"]), alpha = 0, lambda = lam)
-  sum_params_squared <- c(sum_params_squared, sum(ridge$beta^2))
-  zero_coeff <- c(zero_coeff, sum(ridge$beta == 0))
+                  y = unlist(train_data[, "Fat"]), alpha = 0
+                  #, lambda = lam
+                  )
+#  sum_params_squared <- c(sum_params_squared, sum(ridge$beta^2))
+#  zero_coeff <- c(zero_coeff, sum(ridge$beta == 0))
   
-}
+#}
 
 # plot results
-ridge_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
-                            Legend = c(rep("# Parameters with Coefficients = 0", 7), 
-                                       rep("Sum of squared values of Coefficients", 7)),
-                            value = c(zero_coeff, sum_params_squared))
+#ridge_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
+#                            Legend = c(rep("# Parameters with Coefficients = 0", 7), 
+#                                       rep("Sum of squared values of Coefficients", 7)),
+#                            value = c(zero_coeff, sum_params_squared))
 
-ggplot(ridge_results) + geom_line(aes(log_10_lambda, value, colour = Legend)) + theme_bw() + 
-  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
-  xlab("Log (base-10) of Ridge Hyper-Parameter 'lambda'") + ylab("Parameter Attributes") + 
-  ggtitle("Relationship between Ridge Lambda and parameter attributes")
+plot(ridge, "lambda")
+
+#ggplot(ridge_results) + geom_line(aes(log_10_lambda, value, colour = Legend)) + theme_bw() + 
+#  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
+#  xlab("Log (base-10) of Ridge Hyper-Parameter 'lambda'") + ylab("Parameter Attributes") + 
+#  ggtitle("Relationship between Ridge Lambda and parameter attributes")
 
 ## lasso with CV
 
 # fit
-cv_means <- c()
-cv_min_lambda <- c()
-for (i in 1:100) {
+#cv_means <- c()
+#cv_min_lambda <- c()
+#for (i in 1:100) {
   
   cv_lasso <- cv.glmnet(x = as.matrix(subset(train_data, select = -Fat)), 
                         y = unlist(train_data[, "Fat"]), alpha = 1, 
-                        lambda = lambda_choices, nfolds = 3)
-  cv_means <- cbind(cv_means, cv_lasso$cvm)
-  cv_min_lambda <- c(cv_min_lambda, cv_lasso$lambda.min)
-}
-plot(cv_lasso)
+                        #lambda = lambda_choices
+                        , nfolds = 3)
+  #cv_means <- cbind(cv_means, cv_lasso$cvm)
+  #cv_min_lambda <- c(cv_min_lambda, cv_lasso$lambda.min)
+#}
+
 # plot
-ggplot(data.frame(log_10_lambda = -3:3, cv_score = rev(rowMeans(cv_means)))) + 
-  geom_line(aes(log_10_lambda, cv_score)) + scale_x_continuous(breaks = -3:3) +
-  geom_vline(xintercept = -3, linetype = "dotted") + 
-  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + ylab("Mean squared error across CV folds") + 
-  ggtitle("Relationship between LASSO Lambda and CV Scores")
+plot(cv_lasso, xvar = "lambda")
+  
+#ggplot(data.frame(log_10_lambda = -3:3, cv_score = rev(rowMeans(cv_means)))) + 
+#  geom_line(aes(log_10_lambda, cv_score)) + scale_x_continuous(breaks = -3:3) +
+#  geom_vline(xintercept = -3, linetype = "dotted") + 
+#  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + ylab("Mean squared error across CV folds") + 
+#  ggtitle("Relationship between LASSO Lambda and CV Scores")
 
 opt_lambda <- cv_lasso$lambda.min
 cat("Optimal Lambda is:", opt_lambda)
@@ -410,7 +419,7 @@ cat("Number of variables chosen in the model:", num_non_zero_params_opt_lambda)
 
 # comparing LASSO regression model with optimal lambda and another with log (base-10) lambda = -2
 model_log_lambda_minus_2 <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                                   y = unlist(train_data[, "Fat"]), alpha = 1, lambda = 10^-2)
+                                   y = unlist(train_data[, "Fat"]), alpha = 1, lambda = exp(-2))
 y_test <- unlist(test_data[, "Fat"])
 y_test_pred_opt_lambda <- predict(model_optimal_lambda, as.matrix(subset(test_data, select = -Fat)))
 y_test_log_lambda_minus_2 <- predict(model_log_lambda_minus_2, as.matrix(subset(test_data, select = -Fat)))
