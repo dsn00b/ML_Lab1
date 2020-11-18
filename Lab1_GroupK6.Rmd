@@ -605,28 +605,24 @@ test_fat <- fats[id_fat_test,]
 ```{r,echo =FALSE}
 
 
-# train_fat<-scale(train_fat)
-# test_fat <- scale(test_fat)
 train_fat <- as.data.frame(train_fat)
 test_fat<-as.data.frame(test_fat)
 lm_fats_train <- lm(Fat ~., data = train_fat )
 
-#train_mse <- mean((train_fat - predict(lm_fats_train, train_fat))^2)
-
-summary(lm_fats_train)
-
+sum_mary<-summary(lm_fats_train)
 #predictions 
 predicted_train_fat <- predict(lm_fats_train)
 
-#train mse
+#train MSE
 mse_train <- mean((train_fat$Fat - predicted_train_fat)^2)
 
 predicted_test_fat<-predict(lm_fats_train, test_fat)
 
-#test mse
+#test MSE
 mse_test <- mean((test_fat$Fat- predicted_test_fat)^2)
 
-cat("Training MSE: ", mse_train, ". Test MSE: ", mse_test)
+cat("Training MSE: ", mse_train, ". Test MSE: ", mse_test,"\n")
+cat("Adjusted R-square: ", sum_mary$adj.r.squared)
 
 ```
 
@@ -653,7 +649,8 @@ The function we are looking to optimize in this case is loss function of the LAS
 
 
 $$\sum\limits_{i=1}^N{(y_i - \mathbb{X}_i\boldsymbol{\beta})^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
-Where $\N$ is the number of observations and $\mathbb{X}$ is the matrix of features and $\y$ is the dependent variable. $\beta$ are the parameters that the shrinkage function right part of the plus sign. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ parameters. 
+
+Where $N$ is the number of observations and $\mathbb{X}$ is the matrix of features and $y$ is the dependent variable. $\beta$ are the parameters that the shrinkage function right part of the plus sign. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ parameters. 
 
 ### 3.3
 ```{r, echo=FALSE}
@@ -664,7 +661,7 @@ x<-as.matrix(train_fat[,c(1:100)])
 y <- as.matrix(train_fat[,101])
 
 
-lambda_values<-seq(from = 0.01, to = 0.1, by = 0.002)
+lambda_values<-seq(from = 0.01, to = 1, by = 0.002)
 lambda_values<-rev(lambda_values)
 lasso3_3_df <- 0
 i <- 1
@@ -687,7 +684,7 @@ plot(lasso3_3_for_plot, "lambda" , main = "LASSO model coefficent convergence")
 
 ```
 
-From the plot we can see that where the function converges to 3 features that have non zero coefficients is approximately at $e^[-2.6]$ and it was numerically shown that at $log(\lambda) = -2.688248$ the function would have a df of 3 and 3 features with non zero coefficents.
+From the plot we can see that where the function converges to 3 features that have non zero coefficients is approximately at $log(\lambda) = -0.2$ and it was numerically shown that the upper bound approximately to be at $log(\lambda) = -0.1031408$ where the function would have a df of 3 and 3 features with non zero coefficients. Approximately between the values  $log(\lambda) = (-0.5,-0.1031408)$ the model will have 3 features. 
 
 ### 3.4
 
@@ -702,11 +699,6 @@ ggplot(data = plot_data ,aes( x= log_lambda , y = df)) + geom_point() +
 The graph shows that as the value of the shrinkage parameter lambda increases it reduces the number of features in the model. Which is exactly as expected from the given function with an sufficiently large $\lambda$ it will reduce the number of features included to 0 as such decreasing the degrees of freedom. 
 
 ```{r, echo=FALSE}
-
-lasso3_5 <- glmnet(x = x, y = y, alpha = 0)
-plot(lasso3_5, "lambda")
-log(lambda_values[i])
-
 lasso3_5_for_plot<-glmnet(x = x, y = y, alpha = 0)
 
 plot(lasso3_3_for_plot, "lambda", main = "Lasso regression: Coef vs log lambda")
@@ -754,11 +746,12 @@ lasso3_6_lambda_chosen$df
 
 y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_fat[,-101]))
 
-plot_data_36 <- data.frame("ypredlm" = scale(test_fat[,101]) , "ylassopred" = y_hat_lasso)
-ggplot(plot_data_36, aes(x = ypredlm, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n predicted values from linear regression", x = "Predicted values from LM", y = "Predicted values from LASSO")
+plot_data_36 <- data.frame("y_test" = test_fat[,101] , "ylassopred" = y_hat_lasso)
+
+ggplot(plot_data_36, aes(x = y_test, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n observed values from the test data", x = "y from test data", y = "Predicted values from LASSO")
 ```
 
-
+From observing the plot we can say that the predictions are a decent estimate as a perfect fit would results in a diagonal line over the graph. There seems to be a approximately linear trend between the predictions and true values. The model seem to over estimate for high values
 
 
 ### 3.7
@@ -782,8 +775,7 @@ ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
 
 ```
 
-
-
+The generation seems to generate decent approximation of the new target values as we can see some spread in the values around the diagonal, it seems to generate slightly higher values on average than the observed ones. 
 
 
 
@@ -1047,233 +1039,22 @@ ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() +
 
 ### Question 3
 
-# read in data
-tecator <- read_csv("tecator.csv", col_types = cols())
 
-# drop columns not to be used for prediction
-tecator <- tecator[, -c(1, 103, 104)]
+#Predicting from lasso lambda opt
 
-# split into training/test
-all_indices <- 1:(nrow(tecator))
-set.seed(12345)
-train_indices <- sample(all_indices, ceiling(0.5*nrow(tecator)))
-test_indices <- all_indices[!(all_indices %in% train_indices)]
-train_data <- tecator[train_indices, ]
-test_data <- tecator[test_indices, ]
+preds <- predict(lasso3_6_opt,as.matrix( test_fat[,-101]))
 
-## linear regression
+#calculating new sigma
+sigma<- sqrt(mean((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101])))^2 ))
 
-# model
+#generating new data
+new_targets <- rnorm(n = nrow(test_fat),preds, sigma )
 
-# $$\mathbf{y} \sim N(\boldsymbol{\beta}\mathbb{X}, \, \sigma^2\mathbb{I})$$
+generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
+ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
+  labs(title = "Generated data vs observed test data", x = "test y", y = "Generated data")
 
-# fit
-linreg <- lm(Fat~., train_data)
-y_train_pred <- predict(linreg)
-y_test_pred <- predict(linreg, test_data)
-train_mse <- sum((train_data$Fat - y_train_pred)^2)/nrow(train_data)
-test_mse <- sum((test_data$Fat - y_test_pred)^2)/nrow(test_data)
 
-cat("Training MSE is:", train_mse)
-cat("\nTest MSE is: ", test_mse)
 
-## lasso regression
 
-# objective function
-
-## $$\sum\limits_{i=1}^N{(y_i - \boldsymbol{\beta}\mathbb{X}_i)^2} + \lambda\sum\limits_{j=1}^p{|\beta_i|}$$
-
-# helper function: degrees of freedom
-lasso_degrees_of_freedom <- function(lasso_model, y, X, 
-                                     num_simulations, num_samples) {
-  
-  X <- as.matrix(X)
-  y <- unlist(y)
-  y_pred <- as.numeric(predict(lasso, X))
-  r <- nrow(X)
-  sum_cov = 0
-  
-  while (num_simulations > 0) {
-    
-    set.seed(num_simulations)
-    sample_indices <- sample(1:r, num_samples)
-    sample_X <- X[sample_indices, ]
-    sample_y <- y[sample_indices]
-    sample_y_pred <- y_pred[sample_indices]
-    sum_cov <- sum_cov + cov(sample_y, sample_y_pred)
-    num_simulations = num_simulations - 1
-    
-  }
-  
-  sigma_hat_square <- sum((y - y_pred)^2)/num_samples
-  
-  return(sum_cov/sigma_hat_square)
-  
-}
-
-# fit
-lambda_choices <- c(10^-3, 10^-2, 10^-1, 1, 10, 100, 1000)
-zero_coeff <- c()
-sum_abs_val_params <- c()
-lasso_deg_freedoms <- c()
-for (lam in lambda_choices){
-  
-  lasso <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                  y = unlist(train_data[, "Fat"]), alpha = 1, lambda = lam)
-  sum_abs_val_params <- c(sum_abs_val_params, sum(abs(lasso$beta)))
-  zero_coeff <- c(zero_coeff, sum(lasso$beta == 0))
-  lasso_deg_freedoms <- c(lasso_deg_freedoms, 
-                          lasso_degrees_of_freedom(
-                            lasso, tecator[, "Fat"], 
-                            subset(tecator, select = -Fat), 
-                            num_simulations = 50, 
-                            num_samples = 100))
-  # using full dataset rather than train / test, because why not!
-  
-}
-
-# plot results
-lasso_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
-                            Legend = c(
-                              rep("# Parameters with Coefficients = 0", 7), 
-                              rep("Sum of absolute values of Coefficients", 7)),
-                            value = c(zero_coeff, sum_abs_val_params))
-
-ggplot(lasso_results) + geom_line(aes(log_10_lambda, value, colour = Legend) +
-  theme_bw() + 
-  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
-  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + 
-  ylab("Parameter Attributes") + 
-  ggtitle("Relationship between LASSO Lambda and parameter attributes")
-
-lasso_deg_freedom <- data.frame(log_10_lambda = rep(-3:3, 2), 
-                                value = lasso_deg_freedoms)
-
-ggplot(lasso_deg_freedom) + geom_line(aes(log_10_lambda, value)) + theme_bw() +
-  scale_x_continuous(breaks = -3:3) + 
-  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") + 
-  ylab("Model Degrees of Freedom") + 
-  ggtitle("Relationship between LASSO Lambda and Model Degrees of Freedom")
-
-## ridge regression
-
-# fit
-zero_coeff <- c()
-sum_params_squared <- c()
-for (lam in lambda_choices){
-  
-  ridge <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                  y = unlist(train_data[, "Fat"]), alpha = 0, lambda = lam)
-  sum_params_squared <- c(sum_params_squared, sum(ridge$beta^2))
-  zero_coeff <- c(zero_coeff, sum(ridge$beta == 0))
-  
-}
-
-# plot results
-ridge_results <- data.frame(log_10_lambda = rep(-3:3, 2), 
-                            Legend = c(
-                              rep("# Parameters with Coefficients = 0", 7), 
-                              rep("Sum of squared values of Coefficients", 7)),
-                            value = c(zero_coeff, sum_params_squared))
-
-ggplot(ridge_results) + geom_line(aes(log_10_lambda, value, colour = Legend)) +
-  theme_bw() + 
-  scale_x_continuous(breaks = -3:3) + theme(legend.position="bottom") + 
-  xlab("Log (base-10) of Ridge Hyper-Parameter 'lambda'") +
-  ylab("Parameter Attributes") + 
-  ggtitle("Relationship between Ridge Lambda and parameter attributes")
-
-## lasso with CV
-
-# fit
-cv_means <- c()
-cv_min_lambda <- c()
-for (i in 1:100) {
-  
-  cv_lasso <- cv.glmnet(x = as.matrix(subset(train_data, select = -Fat)), 
-                        y = unlist(train_data[, "Fat"]), alpha = 1, 
-                        lambda = lambda_choices, nfolds = 3)
-  cv_means <- cbind(cv_means, cv_lasso$cvm)
-  cv_min_lambda <- c(cv_min_lambda, cv_lasso$lambda.min)
-}
-
-# plot
-ggplot(data.frame(log_10_lambda = -3:3, cv_score = rev(rowMeans(cv_means)))) + 
-  geom_line(aes(log_10_lambda, cv_score)) + scale_x_continuous(breaks = -3:3) +
-  geom_vline(xintercept = -3, linetype = "dotted") + 
-  xlab("Log (base-10) of LASSO Hyper-Parameter 'lambda'") +
-  ylab("Mean squared error across CV folds") + 
-  ggtitle("Relationship between LASSO Lambda and CV Scores")
-
-opt_lambda <- cv_lasso$lambda.min
-cat("Optimal Lambda is:", opt_lambda)
-
-model_optimal_lambda <- glmnet(x = as.matrix(subset(train_data, select = -Fat)),
-                               y = unlist(train_data[, "Fat"]), alpha = 1,
-                               lambda = opt_lambda)
-num_non_zero_params_opt_lambda <- sum(model_optimal_lambda$beta != 0)
-cat("Number of variables chosen in the model:", num_non_zero_params_opt_lambda)
-
-# comparing LASSO regression model with optimal lambda and 
-# another with log (base-10) lambda = -2
-model_log_lambda_minus_2 <- glmnet(
-  x = as.matrix(subset(train_data, select = -Fat)),
-  y = unlist(train_data[, "Fat"]), alpha = 1, lambda = 10^-2)
-y_test <- unlist(test_data[, "Fat"])
-y_test_pred_opt_lambda <- predict(model_optimal_lambda, 
-                                  as.matrix(subset(test_data, select = -Fat)))
-y_test_log_lambda_minus_2 <- predict(model_log_lambda_minus_2, 
-                                  as.matrix(subset(test_data, select = -Fat)))
-
-num_non_zero_params_log_lambda_minus_2 <- 
-  sum(model_log_lambda_minus_2$beta != 0)
-
-opt_lambda_SSE <- sum((y_test - y_test_pred_opt_lambda)^2) 
-log_lambda_minus_2_SSE <- sum((y_test - y_test_log_lambda_minus_2)^2)
-
-opt_lambda_deg_freedom <- 
-  nrow(test_data) - num_non_zero_params_opt_lambda - 1
-log_lambda_minus_2_deg_freedom <- 
-  nrow(test_data) - num_non_zero_params_log_lambda_minus_2 - 1
-
-opt_lambda_MSE <- opt_lambda_SSE / opt_lambda_deg_freedom
-log_lambda_minus_2_MSE <- 
-  log_lambda_minus_2_SSE / log_lambda_minus_2_deg_freedom
-test_statistic <- opt_lambda_MSE / log_lambda_minus_2_MSE
-
-# Null Hypothesis: opt_lambda_MSE = log_lambda_minus_2_MSE
-# Alternative Hypothesis: opt_lambda_MSE < log_lambda_minus_2_MSE
-
-p_value <- pf(q = test_statistic, 
-              df1 = opt_lambda_deg_freedom, 
-              df2 = log_lambda_minus_2_deg_freedom)
-
-cat("The p-value for the test of null hypothesis that optimal",
-    "lambda works similar to log(lambda) = -2\n",
-    "vs. the alternative that the former is better is:", p_value)
-cat("We, therefore, cannot conclude confidently that the optimal",
-    "lambda works significantly better\n than log(lambda) = -2")
-
-# plot predictions
-ggplot(data.frame(y_test, y_test_pred_opt_lambda)) + 
-  geom_point(aes(y_test, y_test_pred_opt_lambda)) + 
-  xlab("Test Labels") + ylab("Test Predictions") +
-  ggtitle("Goodness of fit - LASSO model with optimised lambda")
-
-## generative model
-
-# estimate sigma: use MLE now ;-)
-y_train <- unlist(train_data[, "Fat"])
-y_train_pred <- predict(model_optimal_lambda, 
-                        as.matrix(subset(train_data, select = -Fat)))
-MLE_sigma_estimate <- sqrt(sum((y_train - y_train_pred)^2)/nrow(train_data))
-
-# generate labels from distribution N(y_train_pred, MLE_sigma_estimate*I)
-y_generated <- rnorm(length(y_test), y_test_pred_opt_lambda, MLE_sigma_estimate)
-
-# plot generated labels vs. original labels
-ggplot(data.frame(y_test, y_generated)) + 
-  geom_point(aes(y_test, y_generated)) + 
-  xlab("Test Labels") + ylab("Generated Labels") +
-  ggtitle("Goodness of fit - Generative LASSO model with optimised lambda")
 ```
