@@ -109,7 +109,7 @@ plotHeatmap <- function(index){
   heatmap(matrix(as.numeric(train_eight[index, 1:64]), 8, 8, byrow = T), Colv = NA, Rowv = NA)
 }
 ```
-![](Lab1_assignment1_3.jpeg) 
+![](Lab1_assignment1_3.jpeg){height=30%}
 
 The cases that are hard to see are chosen with lowest correct rates being 0.1000000, 0.1333333 and 0.1666667. While for the easy to identify ones, the rates are both 100%. As the heatmap shows, the cases that has lowest accuracy rates(the top three showing on the image) are hard to recognized as digits 8 when visualizing them as well. All of them are either too blur or the shape is not clear enough to identify as digit 8. While the 100% accurate cases(the bottom two on the image) are very easy to see as 8.
 
@@ -173,25 +173,25 @@ As the plot shows, the optimized K value is 6, because at that point, the risk v
 
 ### 2.1-3 Bayesian Ridge regression model, Data Preparation and Functions to run Ridge regression
 
-Bayesian ridge regression model for the data (without the intercept parameter) is: $$\mathbf{y} | \mathbb{X}, w_0, \mathbf{w} \sim N(w_0 + \mathbb{X}\mathbf{w}, \, \sigma^2\mathbb{I}),$$
+Bayesian ridge regression model for the data (without the intercept parameter) is: $$\mathbf{y} | \mathbb{X}, \mathbf{w} \sim N(\mathbb{X}\mathbf{w}, \, \sigma^2\mathbb{I}),$$
 where:
 
 *   $\mathbf{y}$ is the vector of Parkinson's disease symptom scores, "motor UPDRS", the dependent variable
 *   $\mathbb{X}$ is the design matrix containing the observed values of all the independent variables corresponding to $\mathbf{y}$ (voice characteristics in this case)
 *   $\boldsymbol{w}$ is the vector of bayesian ridge regression parameters
-*   $\sigma$ is a scalar such that $\sigma^2 \cdot \mathbb{I}$ is the covariance matrix of the linear regression error terms
+*   $\sigma$ is a scalar such that $\sigma^2 \cdot \mathbb{I}$ is the covariance matrix of the regression error terms
 
 The Bayesian prior for $\boldsymbol{w}$ is: $$\mathbf{w} \sim N(0, \, \frac{\sigma^2}{\lambda}\mathbb{I}),$$
 
 where:
 
-*   $\lambda$ is the ridge penalty hyper-parameter
+*   $\lambda$ is the ridge penalty / ridge hyper-parameter
 
 Data and functions were prepared as required (see appendix for code)
 
 ### 2.4.1 Training and test MSE values
 
-Fitting the above mentioned ridge regression model on the training dataset, with $\lambda = 1, 100 and 1,000$, we see the training and test [MSE](https://en.wikipedia.org/wiki/Mean_squared_error) values as shown in the plot below. Note that the test data was scaled using the same means and standard deviations used to scale training data (this is as recommended [here](https://sebastianraschka.com/faq/docs/scale-training-test.html))
+Fitting the above mentioned ridge regression model on the training dataset, with $\lambda = 1, \, 100 \, and \, 1,000$, we see the training and test [MSE](https://en.wikipedia.org/wiki/Mean_squared_error) values as shown in the plot below. Note that the test data was scaled using the same means and standard deviations used to scale training data (this is as recommended [here](https://sebastianraschka.com/faq/docs/scale-training-test.html))
 
 ``` {r, echo = FALSE, fig.asp = 0.5}
 # read in data
@@ -274,9 +274,13 @@ model1_optimal_weights <- model1_optimal_weights_sigma[1:(n_col - 1)]
 model1_optimal_sigma <- model1_optimal_weights_sigma[n_col]
 model1_train_MSE <- MSE(train_data, model1_optimal_weights)
 model1_test_MSE <- MSE(test_data, model1_optimal_weights)
-model1_AIC <- -2*model_log_likelihood(
+model1_train_AIC <- -2*model_log_likelihood(
   model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 1)
+model1_test_AIC <- -2*model_log_likelihood(
+  model1_optimal_weights, model1_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
+
 
 # model 2: lambda = 100
 model2_optimal_weights_sigma <- ridge_opt(train_data, lambda = 100)
@@ -284,9 +288,12 @@ model2_optimal_weights <- model2_optimal_weights_sigma[1:(n_col - 1)]
 model2_optimal_sigma <- model2_optimal_weights_sigma[n_col]
 model2_train_MSE <- MSE(train_data, model2_optimal_weights)
 model2_test_MSE <- MSE(test_data, model2_optimal_weights)
-model2_AIC <- -2*model_log_likelihood(
+model2_train_AIC <- -2*model_log_likelihood(
   model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 100)
+model2_test_AIC <- -2*model_log_likelihood(
+  model2_optimal_weights, model2_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
 
 # model 3: lambda = 1000
 model3_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1000)
@@ -294,12 +301,16 @@ model3_optimal_weights <- model3_optimal_weights_sigma[1:(n_col - 1)]
 model3_optimal_sigma <- model3_optimal_weights_sigma[n_col]
 model3_train_MSE <- MSE(train_data, model3_optimal_weights)
 model3_test_MSE <- MSE(test_data, model3_optimal_weights)
-model3_AIC <- -2*model_log_likelihood(
+model3_train_AIC <- -2*model_log_likelihood(
   model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 1000)
+model3_test_AIC <- -2*model_log_likelihood(
+  model3_optimal_weights, model3_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
 
 # plot performance
-MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), Legend = rep(c("Training", "Test"), 3), 
+MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), 
+                       Legend = rep(c("Training", "Test"), 3), 
                        value = c(model1_train_MSE, model1_test_MSE, model2_train_MSE, 
                                  model2_test_MSE, model3_train_MSE, model3_test_MSE))
 
@@ -320,18 +331,38 @@ MSE is a more appropriate measure here than other empirical risk functions such 
 
 ### 2.5.1 Optimal model according to AIC criterion
 
-In terms of AIC, the optimal value of $\lambda$ within the set $\{1, 100, 1000\}$ is 1 (see plot below); note that degrees of freedom are calculated according to Equation 3.50 in the book The Elements of Statistical Learning, Hastie et al, Second Edition, Springer, in page 68.
+In terms of AIC, we consider the optimal value of $\lambda$ within the set $\{1, 100, 1000\}$ to be 1 once again. If we review the first plot below, at value $\lambda = 1$, test AIC is low (though not at it's lowest), training AIC is at its lowest, and the difference between test AIC and training AIC is at its lowest as well. However, it's clearer from the second plot, that AIC (when normalised for the number of observations in the training/test datasets) is lowest when $\lambda = 1$, both for training and test datasets.
+
+Note that we calculate degrees of freedom according to Equation 3.50 in the book The Elements of Statistical Learning, Hastie et al, Second Edition, Springer, in page 68.
 
 ### 2.5.2 Theoretical advantage of AIC based model selection compared to holdout model selection
 
-The theoretical advantage of using AIC for model selection is that it penalises models for high complexity (high degrees of freedom), which holdout model selection does not do; in reality, however, AIC is influenced both by data likelihood given model and degrees of freedom. In the plot below, we see evidence of AIC being dominated by the likelihood factor and in effect, we end up selecting the model $\lambda = 1$, as it has lowest AIC.
+The theoretical advantage of using AIC for model selection is that it penalises models for high complexity (high degrees of freedom), which holdout model selection does not do; in reality, however, AIC is influenced both by data likelihood given model and degrees of freedom. In the plot below, we see evidence of AIC being dominated by the likelihood factor and in effect, we end up selecting the model $\lambda = 1$, as it has lowest normalised AIC.
 
 ``` {r, echo = FALSE, fig.asp = 0.5}
-AIC_data <- data.frame(log_10_lambda = c(0, 2, 3), value = c(model1_AIC, model2_AIC, model3_AIC))
+AIC_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), 
+                       Legend = rep(c("Training", "Test"), 3),
+                       value = c(model1_train_AIC, model1_test_AIC, model2_train_AIC,
+                                 model2_test_AIC, model3_train_AIC, model3_test_AIC),
+                       value_norm = c(model1_train_AIC/nrow(train_data),
+                                 model1_test_AIC/nrow(train_data),
+                                 model2_train_AIC/nrow(train_data),
+                                 model2_test_AIC/nrow(test_data),
+                                 model3_train_AIC/nrow(test_data),
+                                 model3_test_AIC/nrow(test_data)))
 
-ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() + 
-  geom_vline(xintercept = 0, linetype = "dotted") + 
-  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Model AIC") + 
+ggplot(AIC_data) + geom_line(aes(log_10_lambda, value, colour = Legend)) + 
+  geom_vline(xintercept = 0, linetype = "dotted") + theme_bw() + 
+  geom_label(aes(log_10_lambda, value, label = round(value, 0)), label.size = 0.1) +
+  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + 
+  ylab("Model AIC (without any normalisation)") + 
+  ggtitle("Finding the Optimal Hyper-Parameter")
+
+ggplot(AIC_data) + geom_line(aes(log_10_lambda, value_norm, colour = Legend)) + 
+  geom_vline(xintercept = 0, linetype = "dotted") + theme_bw() + 
+  geom_label(aes(log_10_lambda, value_norm, label = round(value_norm, 2)), label.size = 0.1) +
+  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + 
+  ylab("Model AIC normalised for number of observations") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 ```
 
@@ -750,15 +781,18 @@ MSE <- function(X, optimal_weights) { # based on definition here:
   
 }
 
-# model 1: lambda = 1
 model1_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1)
 model1_optimal_weights <- model1_optimal_weights_sigma[1:(n_col - 1)]
 model1_optimal_sigma <- model1_optimal_weights_sigma[n_col]
 model1_train_MSE <- MSE(train_data, model1_optimal_weights)
 model1_test_MSE <- MSE(test_data, model1_optimal_weights)
-model1_AIC <- -2*model_log_likelihood(
+model1_train_AIC <- -2*model_log_likelihood(
   model1_optimal_weights, model1_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 1)
+model1_test_AIC <- -2*model_log_likelihood(
+  model1_optimal_weights, model1_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
+
 
 # model 2: lambda = 100
 model2_optimal_weights_sigma <- ridge_opt(train_data, lambda = 100)
@@ -766,9 +800,12 @@ model2_optimal_weights <- model2_optimal_weights_sigma[1:(n_col - 1)]
 model2_optimal_sigma <- model2_optimal_weights_sigma[n_col]
 model2_train_MSE <- MSE(train_data, model2_optimal_weights)
 model2_test_MSE <- MSE(test_data, model2_optimal_weights)
-model2_AIC <- -2*model_log_likelihood(
+model2_train_AIC <- -2*model_log_likelihood(
   model2_optimal_weights, model2_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 100)
+model2_test_AIC <- -2*model_log_likelihood(
+  model2_optimal_weights, model2_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
 
 # model 3: lambda = 1000
 model3_optimal_weights_sigma <- ridge_opt(train_data, lambda = 1000)
@@ -776,9 +813,12 @@ model3_optimal_weights <- model3_optimal_weights_sigma[1:(n_col - 1)]
 model3_optimal_sigma <- model3_optimal_weights_sigma[n_col]
 model3_train_MSE <- MSE(train_data, model3_optimal_weights)
 model3_test_MSE <- MSE(test_data, model3_optimal_weights)
-model3_AIC <- -2*model_log_likelihood(
+model3_train_AIC <- -2*model_log_likelihood(
   model3_optimal_weights, model3_optimal_sigma, as.matrix(train_data)) + 
   2*degrees_of_freedom(as.matrix(train_data), lambda = 1000)
+model3_test_AIC <- -2*model_log_likelihood(
+  model3_optimal_weights, model3_optimal_sigma, as.matrix(test_data)) + 
+  2*degrees_of_freedom(as.matrix(test_data), lambda = 1)
 
 # plot performance
 MSE_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), 
@@ -791,14 +831,30 @@ ggplot(MSE_data) + geom_line(aes(log_10_lambda, value, colour = Legend)) + theme
   xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Mean Squared Error") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 
-AIC_data <- data.frame(log_10_lambda = c(0, 2, 3), 
-                       value = c(model1_AIC, model2_AIC, model3_AIC))
+AIC_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), 
+                       Legend = rep(c("Training", "Test"), 3),
+                       value = c(model1_train_AIC, model1_test_AIC, model2_train_AIC,
+                                 model2_test_AIC, model3_train_AIC, model3_test_AIC),
+                       value_norm = c(model1_train_AIC/nrow(train_data),
+                                 model1_test_AIC/nrow(train_data),
+                                 model2_train_AIC/nrow(train_data),
+                                 model2_test_AIC/nrow(test_data),
+                                 model3_train_AIC/nrow(test_data),
+                                 model3_test_AIC/nrow(test_data)))
 
-ggplot(AIC_data) + geom_line(aes(log_10_lambda, value)) + theme_bw() + 
-  geom_vline(xintercept = 2, linetype = "dotted") + 
-  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + ylab("Model AIC") + 
+ggplot(AIC_data) + geom_line(aes(log_10_lambda, value, colour = Legend)) + 
+  geom_vline(xintercept = 0, linetype = "dotted") + theme_bw() + 
+  geom_label(aes(log_10_lambda, value, label = round(value, 0)), label.size = 0.1) +
+  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + 
+  ylab("Model AIC (without any normalisation)") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 
+ggplot(AIC_data) + geom_line(aes(log_10_lambda, value_norm, colour = Legend)) + 
+  geom_vline(xintercept = 0, linetype = "dotted") + theme_bw() + 
+  geom_label(aes(log_10_lambda, value_norm, label = round(value_norm, 2)), label.size = 0.1) +
+  xlab("Log (base-10) of Hyper-Parameter 'lambda'") + 
+  ylab("Model AIC normalised for number of observations") + 
+  ggtitle("Finding the Optimal Hyper-Parameter")
 
 ### Question 3
 
