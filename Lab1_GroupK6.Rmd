@@ -3,6 +3,7 @@ title: "Machine Learning: Block 1 Lab 1 (Group K6)"
 author: "Yiran Wang, Tore Andersson and Shashi Nagarajan Iyer"
 date: "11/11/2020"
 output: pdf_document
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
