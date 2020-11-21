@@ -111,7 +111,7 @@ plotHeatmap <- function(index){
 ```
 ![](Lab1_assignment1_3.jpeg){height=30%}
 
-The cases that are hard to see are chosen with lowest correct rates being 0.1000000, 0.1333333 and 0.1666667. While for the easy to identify ones, the rates are both 100%. As the heatmap shows, the cases that has lowest accuracy rates(the top three showing on the image) are hard to recognized as digits 8 when visualizing them as well. All of them are either too blur or the shape is not clear enough to identify as digit 8. While the 100% accurate cases(the bottom two on the image) are very easy to see as 8.
+The two cases of digit “8” in the training data which we found to be easiest to classify are indeed easily recognizable visually(see bottom two digits in the graphic above). Conversely, the 3 cases of digit "8" in the training data which we found to be hardest to classify are indeed difficult to recognize visually(see top three digits in the graphic above).
 
 
 ### 1.4 Use different knn models to fit the train data and analyze with miss-classification rate
@@ -119,23 +119,28 @@ The cases that are hard to see are chosen with lowest correct rates being 0.1000
 This is about fitting the train data with K=1..30 knn models and plot the mis-classification rates for train and validation data. Then observe the plot in different perspective. The plot is shown as below: 
 
 ```{r, warning=FALSE, echo = FALSE}
-e_t <- 0
-e_v <- 0
+e_t <- e_v <- 0
+kt <- kv <- list()
 for (k in 1:30) {
-  kt <- kknn(number ~., train, train, k = k, kernel = "rectangular")
-  e_t[k] <- missclass(train$number, fitted(kt))
-  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
-  e_v[k] <- missclass(validation$number, fitted(kv))
+  kt[k] <- list(kknn(number ~., train, train, k = k, kernel = "rectangular"))
+  e_t[k] <- missclass(train$number, fitted(kt[[k]]))
+  kv[k] <- list(kknn(number ~., train, validation, k = k, kernel = "rectangular"))
+  e_v[k] <- missclass(validation$number, fitted(kv[[k]]))
 }
-plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate")
+plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate", axes = FALSE)
+axis(1, at = seq(1, 30, by = 1))
+axis(2)
 lines(1:30, e_t, ylim = c(0,0.06), col = "blue")
-legend(2, 0.06, legend=c("validation", "train"),
-       col=c("red", "blue"), lty=1:1, cex=0.8)
+abline(v = 4, lty = 3)
+legend(22, 0.02, legend=c("validation", "train"), col=c("red", "blue"), lty=1:1, cex=0.8)
+box()
 ```
 
-As k increases, the complexity of the model for both data sets also increases overall. As we can see in the plot, the error rate for the validation data decreases first to 0.025 when K is 3 and stays a bit before going up quickly as K increases with a final slight drop till 0.05. While the error rate for the train data starts with 0 when k is 0, and then goes up gradually as K goes up.
+As k increases, model complexity decreases, and training error rate rises. But for test error rate, it goes down first until they reach a minimum value at k = 3 and k = 4, and then roughly increase there afterwards. This suggests that we have over-fitting till k = 3 or 4 and under-fitting after k > 4.
 
-The optimal K is a little difficult to detect right away since the differences for different K values are very small, especially when K is about 3 to 7. But we take 4 as the optimal one based on only the rate we plot here. As at that point, the value for validation rate is the lowest. The difference between validation and train data is not the smallest but also not very high. From the perspective of bias-variance trade-off, the difference could be interpreted as variance and the error rate can be seen as bias. In this case, we want the bias to be as small as possible and compromise with the variance not being perfect. Low bias is not always perfect as it can lead to a higher variance(when error of train data is 0, the error of validation data is relatively higher). When bias is a little bit higher, the variance can be a bit lower as it can generalize new data better. But after certain point, when bias gets too high, the error rate for both train and validation data will be high, which would be not a suitable model as it may be under-fitting.
+As we can see from the plot, when k = 3 or 4 (i.e. equally low bias), the model fits good. But we choose k = 4 as optimal k value since at that point the difference between training and validation error rate (a measure of the variance of the model) is lower.
+
+From the perspective of bias-variance trade-off, the difference could be interpreted as variance and the error rate can be seen as bias. In this case, we want the bias to be as small as possible and compromise with the variance not being perfect. Low bias is not always perfect as it can lead to a higher variance(when error of train data is 0, the error of validation data is relatively higher). When bias is a little bit higher, the variance can be a bit lower as it can generalize new data better. But after certain point, when bias gets too high, the error rate for both train and validation data will be high, which would be not a suitable model as it may be under-fitting.
 
 With the optimal K value selected based on above analysis, the result of the model for test data can be shown as:
 
@@ -154,16 +159,23 @@ The test error being 2.51% with K=4 is about the same as the error rate of valid
 This task is also about fitting train data with different k values. But estimate the result with empirical risk, in this case, cross entropy value. This plot of the result is as follows:
 
 ```{r, echo = FALSE}
-r_v <- 0
+r_v <- r_t <- 0
 for (k in 1:30) {
-  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
-  s <- 0
+  s <- s2 <- 0
   for (i in 0:9) {
-    s <- s + sum(log(kv$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv$prob))
+    s <- s + sum(log(kv[[k]]$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv[[k]]$prob))
+    s2 <-s2 + sum(log(kt[[k]]$prob[which(train$number==i), toString(i)] + 1e-15)/nrow(kt[[k]]$prob))
   }
   r_v[k] <- -s
+  r_t[k] <- -s2
 }
-plot(1:30, r_v, type = "l", xlab = "K", ylab = "mean cross entropy")
+plot(1:30, r_v, type = "l", col = "red", xlab = "K", ylab = "mean cross entropy", axes = FALSE, ylim = c(0,1))
+axis(1, at = seq(1, 30, by = 1))
+axis(2)
+lines(1:30, r_t, col = "blue")
+abline(v = 6, lty = 3)
+legend(22, 0.9, legend=c("validation", "train"), col=c("red", "blue"), lty=1:1, cex=0.8)
+box()
 ```
 
 As the plot shows, the optimized K value is 6, because at that point, the risk value is the lowest with a value being 0.1191288. The reason cross entropy is a better approach of estimating optimal model here is because it uses the probabilities of each class for every observation. The lower the the probability the model has for the correct class, the more penalty it will get. But for the mis-classification method, it only outputs 0 or 1, which means that even if the probabilities are slightly different or huge differ from each other, the penalty would be the same. Thus, the way cross-entropy works can lead the model to be trained more correctly.
@@ -666,18 +678,21 @@ for (i in c(hard_ids, easy_ids)) {
 }
 
 #1.4
-e_t <- 0
-e_v <- 0
+e_t <- e_v <- 0
+kt <- kv <- list()
 for (k in 1:30) {
-  kt <- kknn(number ~., train, train, k = k, kernel = "rectangular")
-  e_t[k] <- missclass(train$number, fitted(kt))
-  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
-  e_v[k] <- missclass(validation$number, fitted(kv))
+  kt[k] <- list(kknn(number ~., train, train, k = k, kernel = "rectangular"))
+  e_t[k] <- missclass(train$number, fitted(kt[[k]]))
+  kv[k] <- list(kknn(number ~., train, validation, k = k, kernel = "rectangular"))
+  e_v[k] <- missclass(validation$number, fitted(kv[[k]]))
 }
-plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate")
+plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate", axes = FALSE)
+axis(1, at = seq(1, 30, by = 1))
+axis(2)
 lines(1:30, e_t, ylim = c(0,0.06), col = "blue")
-legend(2, 0.06, legend=c("validation", "train"),
-       col=c("red", "blue"), lty=1:1, cex=0.8)
+abline(v = 4, lty = 3)
+legend(22, 0.02, legend=c("validation", "train"), col=c("red", "blue"), lty=1:1, cex=0.8)
+box()
 
 k_test_optik <- kknn(number ~., train, test, k = 4, kernel = "rectangular")
 cat("Test mis-classification rate when k=4 is:", missclass(test$number, fitted(k_test_optik)),
@@ -685,16 +700,23 @@ cat("Test mis-classification rate when k=4 is:", missclass(test$number, fitted(k
     "\nValidation mis-classification rate when k=4 is:", e_v[4])
 
 #1.5
-r_v <- 0
+r_v <- r_t <- 0
 for (k in 1:30) {
-  kv <- kknn(number ~., train, validation, k = k, kernel = "rectangular")
-  s <- 0
+  s <- s2 <- 0
   for (i in 0:9) {
-    s <- s + sum(log(kv$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv$prob))
+    s <- s + sum(log(kv[[k]]$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv[[k]]$prob))
+    s2 <-s2 + sum(log(kt[[k]]$prob[which(train$number==i), toString(i)] + 1e-15)/nrow(kt[[k]]$prob))
   }
   r_v[k] <- -s
+  r_t[k] <- -s2
 }
-plot(1:30, r_v, type = "l", xlab = "K", ylab = "mean cross entropy")
+plot(1:30, r_v, type = "l", col = "red", xlab = "K", ylab = "mean cross entropy", axes = FALSE, ylim = c(0,1))
+axis(1, at = seq(1, 30, by = 1))
+axis(2)
+lines(1:30, r_t, col = "blue")
+abline(v = 6, lty = 3)
+legend(22, 0.9, legend=c("validation", "train"), col=c("red", "blue"), lty=1:1, cex=0.8)
+box()
 
 
 ### Assignment 2
