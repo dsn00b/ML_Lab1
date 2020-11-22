@@ -183,7 +183,7 @@ As the plot shows, the optimized K value is 6, because at that point, the risk v
 
 ## 2. Assignment 2 - Ridge regression and model selection
 
-### 2.1-3 Bayesian Ridge regression model, Data Preparation and Functions to run Ridge regression
+### 2.1-3 Bayesian Ridge regression model, Data Prep & Functions to run Ridge regression
 
 Bayesian ridge regression model for the data (without the intercept parameter) is: $$\mathbf{y} | \mathbb{X}, \mathbf{w} \sim N(\mathbb{X}\mathbf{w}, \, \sigma^2\mathbb{I}),$$
 where:
@@ -343,13 +343,17 @@ MSE is a more appropriate measure here than other empirical risk functions such 
 
 ### 2.5.1 Optimal model according to AIC criterion
 
-In terms of AIC, we consider the optimal value of $\lambda$ within the set $\{1, 100, 1000\}$ to be 1 once again. If we review the first plot below, at value $\lambda = 1$, test AIC is low (though not at it's lowest), training AIC is at its lowest, and the difference between test AIC and training AIC is at its lowest as well. However, it's clearer from the second plot, that AIC (when normalised for the number of observations in the training/test datasets) is lowest when $\lambda = 1$, both for training and test datasets.
+In terms of AIC, we consider the optimal value of $\lambda$ within the set $\{1, 100, 1000\}$ to be 1, as opposed to 100, which was the optimal value found via the holdout method. Note that even though it is not strictly required, we review AIC in both training and test samples. 
+
+If we review the first plot below, at value $\lambda = 1$, test AIC is low (though not at it's lowest), training AIC is at its lowest, and the difference between test AIC and training AIC is at its lowest as well. However, it's clearer from the second plot, that AIC (when normalised for the number of observations in the training/test datasets) is lowest when $\lambda = 1$, both for training and test datasets.
 
 Note that we calculate degrees of freedom according to Equation 3.50 in the book The Elements of Statistical Learning, Hastie et al, Second Edition, Springer, in page 68.
 
 ### 2.5.2 Theoretical advantage of AIC based model selection compared to holdout model selection
 
-The theoretical advantage of using AIC for model selection is that it penalises models for high complexity (high degrees of freedom), which holdout model selection does not do; in reality, however, AIC is influenced both by data likelihood given model and degrees of freedom. In the plot below, we see evidence of AIC being dominated by the likelihood factor and in effect, we end up selecting the model $\lambda = 1$, as it has lowest normalised AIC.
+The theoretical advantage of using AIC for model selection is that it can perform 'in-sample' model selection. That is, it does not require a holdout sample for model selection. This is advantageous in situations where there are only enough observations to train the model. For instance, if there were only 30 observations of data in all, it would be ill-advised to split the data into training and holdout samples; instead one should use all the available data for model training.
+
+Note that AIC of any given model is influenced both by data likelihood (given the model) and its degrees of freedom. In the plot below, we see evidence of AIC being dominated by the likelihood factor and as a result, we end up selecting the model with $\lambda = 1$ as the optimal model, since it has lowest normalised AIC, even though that model is the most complex of the three models with $\lambda = 1, \, 100, \, and \, 1000$ respectively.
 
 ``` {r, echo = FALSE, fig.asp = 0.5}
 AIC_data <- data.frame(log_10_lambda = c(0, 0, 2, 2, 3, 3), 
@@ -374,7 +378,7 @@ ggplot(AIC_data) + geom_line(aes(log_10_lambda, value_norm, colour = Legend)) +
   geom_vline(xintercept = 0, linetype = "dotted") + theme_bw() + 
   geom_label(aes(log_10_lambda, value_norm, label = round(value_norm, 2)), label.size = 0.1) +
   xlab("Log (base-10) of Hyper-Parameter 'lambda'") + 
-  ylab("Model AIC normalised for number of observations") + 
+  ylab("Model AIC normalised \nfor number of observations") + 
   ggtitle("Finding the Optimal Hyper-Parameter")
 ```
 
