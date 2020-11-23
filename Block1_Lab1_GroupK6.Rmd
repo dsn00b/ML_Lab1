@@ -598,7 +598,7 @@ From observing the plot we can say that the predictions are a decent estimate as
 #Predicting from lasso lambda opt
 preds <- predict(lasso3_6_opt,as.matrix( test_fat[,-101]))
 
-#calculating new sigma
+#calculating new sigma used for generation
 sigma<- sd((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101])) ))
 
 #generating new data
@@ -608,7 +608,6 @@ new_targets <- rnorm(n = nrow(test_fat),preds, sigma)
 generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
 ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
   labs(title = "Generated data vs observed test data", x = "y from test data", y = "Generated data")
-
 
 
 ```
