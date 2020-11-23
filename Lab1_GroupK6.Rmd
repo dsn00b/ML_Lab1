@@ -355,7 +355,12 @@ train_fat <- fats[id_fat_train,]
 test_fat <- fats[id_fat_test,]
 ```
 
+The underlying problistic model is a linear regression model with the distribution $$y \sim N (w^T\mathcal{X}, \, \sigma^2)$$
 
+* y is a vector of the response variable "Fat" 
+* $w^T$ is a vector of the regression parameters 
+* $\mathcal{X}$ is a matrix of the observed values for the independent variables used in the model which are the fat channels
+* $\sigma^2$ is a scalar that denotes the variance of the features.
 
 ```{r,echo =FALSE}
 
@@ -377,7 +382,8 @@ predicted_test_fat<-predict(lm_fats_train, test_fat)
 #test MSE
 mse_test <- mean((test_fat$Fat- predicted_test_fat)^2)
 
-cat("Training MSE: ", mse_train, ". Test MSE: ", mse_test,"\n")
+cat("Output of the linear regression model: \n")
+cat("Training MSE: ", mse_train, ", Test MSE: ", mse_test,"\n")
 cat("Adjusted R-square: ", sum_mary$adj.r.squared)
 
 ```
@@ -397,7 +403,7 @@ plot(lm_fats_train)
 
 
 
-Analyzing the plots we find that the assumptions that the model residuals are i.i.d can be assumed to be approximately fulfilled with less spread on the right hand side than the left. It's clear that the residuals do not follow anything similar to a normal distribution with mean 0 and variance 1 when observing the QQ-plot. Hence the assumptions for the model are not fulfilled so we should not draw any conclusions from the model.
+Analyzing the plots we find that the assumption that the model residuals are i.i.d does seems to be fulfilled. From the residual vs fitted plot it can be observed that the assumption for constant variance is not fulfilled with a wider spread on the left hand side compared to the right hand side. It's clear that the residuals do not follow anything similar to a normal distribution with mean 0 and constant variance when observing the QQ-plot. Hence the assumptions for the model are not fulfilled so we should not draw any conclusions from the model.
 
 
 
@@ -408,7 +414,7 @@ The function we are looking to optimize in this case is loss function of the LAS
 
 $$\sum\limits_{i=1}^N{(y_i - \mathbb{X}_i\boldsymbol{\beta})^2} + \lambda\sum\limits_{j=1}^p{|\beta_j|}$$
 
-Where $N$ is the number of observations and $\mathbb{X}$ is the matrix of features and $y$ is the dependent variable. $\beta$ are the parameters that the shrinkage function right part of the plus sign. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ parameters. 
+Where $N$ is the number of observations and $\mathbb{X}$ is the matrix of features and $y$ is the dependent variable. $\beta$ are the parameters that the shrinkage function will choose so that the loss function minimizes. With $\lambda$ being the shrinkage parameter and P the number of features. Where the chosen $\lambda$ will shrink the $\beta$ parameters. 
 
 ### 3.3
 ```{r, echo=FALSE, fig.asp = 0.5}
@@ -441,7 +447,8 @@ i = i+1
 
 lasso3_3_for_plot<-glmnet(x = x, y = y, alpha = 1)
 
-plot(lasso3_3_for_plot, "lambda" , main = "LASSO model coefficent convergence")
+plot(lasso3_3_for_plot, xvar = "lambda" , main = "LASSO model coefficent convergence")
+
 
 
 cat("The approximate upper bound for 3 features: ", log(lambda_values[i]))
@@ -485,9 +492,9 @@ As seen in the graphs the lasso function will converge the coefficients of the m
 
 # 3.6
 
-# cross validation with 10 folds
+# cross validation with 3 folds
 set.seed(12345)
-cv_lasso <- cv.glmnet(x = x, y = y, alpha = 1)
+cv_lasso <- cv.glmnet(x = x, y = y, alpha = 1, nfolds = 3)
 
 
 # Finding out what the optimal models DF is
@@ -505,7 +512,7 @@ lasso3_6_lambda_chosen <- glmnet(x = x, y = y, alpha = 1, lambda = lambda_test)
 
 min_lambda<-as.numeric(which(cv_lasso$lambda.min==cv_lasso$lambda))
 point_upper_limit_of_CI<-cv_lasso$cvup[min_lambda]
-plot(cv_lasso, main = "Cross-validation 10 fold CI:s for MSE vs values of lambda")
+plot(cv_lasso, main = "Cross-validation 3 fold CI:s for MSE vs values of lambda")
 abline(h = point_upper_limit_of_CI)
 
 
@@ -514,10 +521,9 @@ cat("DF for log lambda = -2: ", lasso3_6_lambda_chosen$df, "\n")
 cat("DF for opitmal lambda found through CV: ", lasso3_6_opt$df )
 
 ```
+The graph shows that the lowest MSE is found at $\lambda = 0.04769214$ which is at $log(\lambda) = -3.042989$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -5 to approx -2.5 and then with a non-linear increase until approximately $log(\lambda)$ reaches 0 and then where it will slowdown the increasing rate of MSE.
 
-From the cross-validation plot we can easier differentiate with the help of the black horizontal line which goes from the top confidence interval for the mean-square error for the optimal lambda that it crosses within the confidence interval for $log(\lambda) = -2$. Which means that we cannot say that the optimal model is significantly better than the $log(\lambda) = -2$ model.
-
-The graph shows that the lowest MSE is found at $\lambda = 0.05234206$ which is at $log(\lambda) = -2.949955$ as shown in the graph. As the $log(\lambda)$ increases the MSE will increase with a linear rate from -8 to approx -5 and then with a non-linear increase until approximately $log(\lambda)$ reaches 0 and then where it will slowdown the increasing rate of MSE.
+From the cross-validation (CV) plot with the help of the black horizontal line where it goes from the upper bound of the confidence interval of the MSE for optimal lambda. As the black line crosses within the confidence interval of the $log(\lambda) = -2$, which means that it's not possible to conclude that the optimal lambda is significantly better than the $log(\lambda) = -2$. The number of folds used for CV was 3 as to trying to reach a reasonable amount of observations used in the validation set used for CV. As the number of observations is only 107 in the train set with CV k-fold = 3 gives over 35 observations in each fold instead of the 20+ in k-fold = 5. 
 
 
 
@@ -525,7 +531,6 @@ The graph shows that the lowest MSE is found at $\lambda = 0.05234206$ which is 
 
 
 #plotting predicted vs observed values
-
 y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_fat[,-101]))
 
 plot_data_36 <- data.frame("y_test" = test_fat[,101] , "ylassopred" = y_hat_lasso)
@@ -533,7 +538,7 @@ plot_data_36 <- data.frame("y_test" = test_fat[,101] , "ylassopred" = y_hat_lass
 ggplot(plot_data_36, aes(x = y_test, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n observed values from the test data", x = "y from test data", y = "Predicted values from LASSO")
 ```
 
-From observing the plot we can say that the predictions are a decent estimate as a perfect fit would results in a diagonal line over the graph. There seems to be a approximately linear trend between the predictions and true values. The model seem to over estimate for high values
+From observing the plot we can say that the predictions are a decent estimate as a perfect fit would results in a diagonal line over the graph. There seems to be a approximately linear trend between the predictions and true values. The model seem to estimate both higher and lower values with no clear trend in one direction.
 
 
 ### 3.7
@@ -543,25 +548,24 @@ From observing the plot we can say that the predictions are a decent estimate as
 # 3.7
 
 #Predicting from lasso lambda opt
-
 preds <- predict(lasso3_6_opt,as.matrix( test_fat[,-101]))
 
 #calculating new sigma
 sigma<- sd((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101])) ))
 
 #generating new data
+set.seed(12345)
 new_targets <- rnorm(n = nrow(test_fat),preds, sigma)
 
 generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
 ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
-  labs(title = "Generated data vs observed test data", x = "test y", y = "Generated data")
+  labs(title = "Generated data vs observed test data", x = "y from test data", y = "Generated data")
 
 
 
 ```
 
-The generation seems to generate decent approximation of the new target values as we can see some spread in the values around the diagonal, it seems that generated data have slightly higher values on average than the observed ones. 
-
+The generated data has a larger spread than the predicted data which is reasonable with the noise included from the residuals. The generated data it self is not good as it comes from a discriminative model instead of a generative model which would produce more random outcomes for the target values. Which is why the generated data closely follows the same distribution as the observed with increased variance.
 
 
 
@@ -928,21 +932,22 @@ plot_data_36 <- data.frame("y_test" = test_fat[,101] , "ylassopred" = y_hat_lass
 ggplot(plot_data_36, aes(x = y_test, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n observed values from the test data", x = "y from test data", y = "Predicted values from LASSO")
 
 
+
 # 3.7
 
 #Predicting from lasso lambda opt
-
 preds <- predict(lasso3_6_opt,as.matrix( test_fat[,-101]))
 
 #calculating new sigma
-sigma<- sd((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101]))))
+sigma<- sd((train_fat[,101] - predict(lasso3_6_opt,as.matrix(train_fat[,-101])) ))
 
 #generating new data
-new_targets <- rnorm(n = nrow(test_fat),preds, sigma )
+set.seed(12345)
+new_targets <- rnorm(n = nrow(test_fat),preds, sigma)
 
 generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
 ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
-  labs(title = "Generated data vs observed test data", x = "test y", y = "Generated data")
+  labs(title = "Generated data vs observed test data", x = "y from test data", y = "Generated data")
 
 
 
