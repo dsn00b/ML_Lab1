@@ -495,7 +495,8 @@ i = i+1
 
 lasso3_3_for_plot<-glmnet(x = x, y = y, alpha = 1)
 
-plot(lasso3_3_for_plot, xvar = "lambda" , main = "LASSO model coefficent convergence")
+plot(lasso3_3_for_plot, xvar = "lambda")
+title("LASSO model coefficent convergence", line = 3)
 
 
 
@@ -507,7 +508,7 @@ From the plot we can see that where the function converges to 3 features that ha
 
 ### 3.4
 
-```{r, echo=FALSE, fig.asp = 0.5}
+```{r, echo=FALSE, fig.asp = 0.4}
 
 # Plotting degrees of freedom for LASSO model
 
@@ -526,8 +527,11 @@ The graph shows that as the value of the shrinkage parameter lambda increases it
 
 lasso3_5_for_plot<-glmnet(x = x, y = y, alpha = 0)
 
-plot(lasso3_3_for_plot, "lambda", main = "Lasso regression: Coef vs log lambda")
-plot(lasso3_5_for_plot, "lambda", main = "Ridge regression: Coef vs log Lambda")
+plot(lasso3_3_for_plot, "lambda")
+title(main = "Lasso regression: Coef vs log lambda", line = 3)
+
+plot(lasso3_5_for_plot, "lambda")
+title(main = "Ridge regression: Coef vs log Lambda", line = 3)
 ```
 
 As seen in the graphs the lasso function will converge the coefficients of the model to 0 whereas the ridge regression model will reduce the coefficients close to zero but never to zero.
@@ -536,7 +540,7 @@ As seen in the graphs the lasso function will converge the coefficients of the m
 
 ### 3.6
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.asp = 0.5}
 
 # 3.6
 
@@ -560,8 +564,9 @@ lasso3_6_lambda_chosen <- glmnet(x = x, y = y, alpha = 1, lambda = lambda_test)
 
 min_lambda<-as.numeric(which(cv_lasso$lambda.min==cv_lasso$lambda))
 point_upper_limit_of_CI<-cv_lasso$cvup[min_lambda]
-plot(cv_lasso, main = "Cross-validation 3 fold CI:s for MSE vs values of lambda")
+plot(cv_lasso)
 abline(h = point_upper_limit_of_CI)
+title(main = "Cross-validation 3 fold CI:s for MSE vs values of lambda", line = 3)
 
 
 
@@ -678,7 +683,8 @@ hard_ids <- sortedResult$ix[1:3] #50  43 136
 tail(sortedResult$x, n=c(2)) #1 1
 easy_ids <- tail(sortedResult$ix, n=c(2)) #179 183
 plotHeatmap <- function(index){
-  heatmap(matrix(as.numeric(train_eight[index, 1:64]), 8, 8, byrow = T), Colv = NA, Rowv = NA)
+  heatmap(matrix(as.numeric(train_eight[index, 1:64]), 
+                 8, 8, byrow = T), Colv = NA, Rowv = NA)
 }
 for (i in c(hard_ids, easy_ids)) {
   plotHeatmap(i)
@@ -693,7 +699,8 @@ for (k in 1:30) {
   kv[k] <- list(kknn(number ~., train, validation, k = k, kernel = "rectangular"))
   e_v[k] <- missclass(validation$number, fitted(kv[[k]]))
 }
-plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", ylab = "miss-classification error rate", axes = FALSE)
+plot(1:30, e_v, ylim = c(0,0.06), type = "l", col = "red", xlab = "K", 
+     ylab = "miss-classification error rate", axes = FALSE)
 axis(1, at = seq(1, 30, by = 1))
 axis(2)
 lines(1:30, e_t, ylim = c(0,0.06), col = "blue")
@@ -711,18 +718,22 @@ r_v <- r_t <- 0
 for (k in 1:30) {
   s <- s2 <- 0
   for (i in 0:9) {
-    s <- s + sum(log(kv[[k]]$prob[which(validation$number==i), toString(i)] + 1e-15)/nrow(kv[[k]]$prob))
-    s2 <-s2 + sum(log(kt[[k]]$prob[which(train$number==i), toString(i)] + 1e-15)/nrow(kt[[k]]$prob))
+    s <- s + sum(log(kv[[k]]$prob[which(validation$number==i), 
+                                  toString(i)] + 1e-15)/nrow(kv[[k]]$prob))
+    s2 <-s2 + sum(log(kt[[k]]$prob[which(train$number==i), 
+                                   toString(i)] + 1e-15)/nrow(kt[[k]]$prob))
   }
   r_v[k] <- -s
   r_t[k] <- -s2
 }
-plot(1:30, r_v, type = "l", col = "red", xlab = "K", ylab = "mean cross entropy", axes = FALSE, ylim = c(0,1))
+plot(1:30, r_v, type = "l", col = "red", xlab = "K", 
+     ylab = "mean cross entropy", axes = FALSE, ylim = c(0,1))
 axis(1, at = seq(1, 30, by = 1))
 axis(2)
 lines(1:30, r_t, col = "blue")
 abline(v = 6, lty = 3)
-legend(22, 0.9, legend=c("validation", "train"), col=c("red", "blue"), lty=1:1, cex=0.8)
+legend(22, 0.9, legend=c("validation", "train"), 
+       col=c("red", "blue"), lty=1:1, cex=0.8)
 box()
 
 
@@ -962,9 +973,11 @@ plot(lasso3_3_for_plot, "lambda" , main = "LASSO model coefficent convergence")
 
 # Plotting degrees of freedom for LASSO model
 
-plot_data <- data.frame("log_lambda" = log(lasso3_3_for_plot$lambda), "df" = lasso3_3_for_plot$df )
+plot_data <- data.frame("log_lambda" = l
+                        og(lasso3_3_for_plot$lambda), "df" = lasso3_3_for_plot$df )
 ggplot(data = plot_data ,aes( x= log_lambda , y = df)) + geom_point() + 
-  labs(title = "Degrees of freedom vs Log lambda", x = "Log lambda", y = "Degrees of freedom")
+  labs(title = "Degrees of freedom vs Log lambda", 
+       x = "Log lambda", y = "Degrees of freedom")
 
 # 3.5
 
@@ -1011,7 +1024,10 @@ y_hat_lasso <-predict(lasso3_6_opt, as.matrix(test_fat[,-101]))
 
 plot_data_36 <- data.frame("y_test" = test_fat[,101] , "ylassopred" = y_hat_lasso)
 
-ggplot(plot_data_36, aes(x = y_test, y = s0)) + geom_point() + labs(title = "Comparison of Predicted values with LASSO optimal vs \n observed values from the test data", x = "y from test data", y = "Predicted values from LASSO")
+ggplot(plot_data_36, aes(x = y_test, y = s0)) + geom_point() + 
+  labs(title = paste("Comparison of Predicted values with LASSO optimal vs",
+                     "\n observed values from the test data"), 
+       x = "y from test data", y = "Predicted values from LASSO")
 
 
 
@@ -1029,7 +1045,8 @@ new_targets <- rnorm(n = nrow(test_fat),preds, sigma)
 
 generated_data <- data.frame("ytest" = test_fat[,101], "generated" = new_targets )
 ggplot(generated_data, aes(x = ytest, y = generated)) + geom_point()+
-  labs(title = "Generated data vs observed test data", x = "y from test data", y = "Generated data")
+  labs(title = "Generated data vs observed test data", 
+       x = "y from test data", y = "Generated data")
 
 
 
